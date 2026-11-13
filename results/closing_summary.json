@@ -1,0 +1,31 @@
+{
+  "seconds": 487.3,
+  "n": 1140,
+  "aligned_rows": 1140,
+  "min_probability": 0.017168539477991122,
+  "probs_below_0.01": 0,
+  "dev_log_loss": 0.9867642175178785,
+  "dev_brier": 0.5880977705108548,
+  "dev_rps": 0.2022371899725249,
+  "dev_hit": 0.519298245614035,
+  "market_log_loss": 0.9595496160728355,
+  "market_brier": 0.5698235414953373,
+  "market_rps": 0.1936556779536763,
+  "baseline_log_loss_on_aligned": 0.9963712050398513,
+  "dev_minus_baseline_ll": {
+    "mean": -0.009606987521972797,
+    "ci_low": -0.03305583527112849,
+    "ci_high": 0.0034194070856445207,
+    "level": 0.95,
+    "n": 1140,
+    "includes_zero": true
+  },
+  "dev_minus_market_ll": {
+    "mean": 0.02721460144504303,
+    "ci_low": 0.015403224491699159,
+    "ci_high": 0.03841511166315983,
+    "level": 0.95,
+    "n": 1140,
+    "includes_zero": false
+  }
+}

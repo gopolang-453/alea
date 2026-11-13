@@ -1,0 +1,21 @@
+PASS  test_01_D1_rounded_probabilities.py                 2.3s
+PASS  test_02_D2_strict_won_parsing.py                    0.5s
+PASS  test_03_D3_market_validity.py                       0.5s
+PASS  test_04_strict_data_validation.py                   5.7s
+PASS  test_05_date_grouped_backtest.py                   19.3s
+PASS  test_06_score_grid.py                               1.6s
+PASS  test_07_versioned_model_files.py                    1.6s
+PASS  test_08_roi_confidence_interval.py                  6.3s
+PASS  test_09_odds_timing_alignment.py                   86.6s
+PASS  test_10_new_team_priors.py                         23.4s
+PASS  test_11_regression_pairing_validity.py             25.3s
+PASS  test_12_regression_shrinkage_vs_truth.py           43.3s
+PASS  test_12b_regression_intercept_bias.py              11.2s
+PASS  test_13_regression_tuning_freshness_fullrun.py     74.6s
+PASS  test_14_cutoff_enforcement.py                      89.9s
+PASS  test_15_exact_score_probabilities.py                4.9s
+
+============================================================
+16/16 test files passed
+
+EXIT:0

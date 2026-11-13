@@ -1,2 +1,56 @@
-# alea
-ALEA: a Dixon-Coles Premier League forecast prototype. Not a betting system. v2.4.1 is the frozen baseline; alea-dc-dev is an unreleased repair.
+# ALEA
+
+A Dixon–Coles Poisson model for Premier League home / draw / away probabilities.
+
+This is a forecasting prototype. It is not a betting system. Staking is off. A positive expected value in the value engine is not an edge.
+
+## What is in this repository
+
+| Path | What it is |
+|---|---|
+| `alea_predictor_v2_4_1.py` | Frozen baseline. Do not edit it. SHA-256 `4cfc61085ae742a550944a410ec81a1b21a47cc8ab7688bde0d879c7c24f022a` |
+| `alea_value_engine_v0_2_1.py` | Compares model probabilities with decimal odds. Does not place bets. |
+| `frozen/alea_predictor_v2_3_1.py` | Older frozen baseline. |
+| `tests/` | The v2.4.1 test suite. Run it from this directory. |
+| `dev/alea_predictor_dev.py` | Unreleased repair. Version string `alea-dc-dev`. Refuses `reg = 0` when a team has scored or conceded no goals. |
+| `FULL_AUDIT.md`, `DEV_REPORT.md` | What was tested and what failed. |
+| `results/` | The blind walk-forward predictions and the score file. |
+
+## Install
+
+```bash
+pip install -r requirements.txt
+```
+
+`mpmath` is only needed for `tests/test_15_exact_score_probabilities.py`.
+
+## Run the tests
+
+```bash
+python tests/run_all.py
+python dev/tests/test_dev_repairs.py
+```
+
+## Train and predict
+
+```python
+import alea_predictor_v2_4_1 as alea
+
+data = alea.load_from_csv(seasons=("2425", "2526"))
+params = alea.fit_model(data, xi=0.0, reg=1.0, live=True)
+print(alea.predict(params, "Arsenal", "Chelsea"))
+```
+
+Historical files came from [football-data.co.uk](https://www.football-data.co.uk/). They are not bundled here. The scored predictions are in `results/`.
+
+## What the tests showed
+
+On 1,140 held-out matches, with training strictly before each match day:
+
+| | Log loss | Brier | Right result |
+|---|---:|---:|---:|
+| v2.4.1 | 0.996 | 0.588 | 0.518 |
+| Development candidate | 0.987 | 0.588 | 0.519 |
+| Bet365 closing, margin removed | 0.960 | 0.570 | 0.550 |
+
+The development candidate's log-loss gap versus v2.4.1 is one match (Burnley 2–0 Sunderland, 23 August 2025), where v2.4.1 produced a probability of about 10⁻⁷. On the other 1,139 matches the scores are the same. Neither model matches the closing price. The value engine's 2% edge rule lost about 12% per unit on early prices. Do not bet from it.
