@@ -218,3 +218,18 @@ Every artefact must include the commit SHA, dataset fingerprint, protocol versio
 - scikit-learn Brier score definition: https://scikit-learn.org/stable/modules/generated/sklearn.metrics.brier_score_loss.html
 
 **Important data-use note:** Football-Data.co.uk states that its free data is intended for private individuals and not commercial or data-training products using automated bots/scrapers/AI. Obtain written permission or use a suitably licensed source before any commercial AI training/deployment.
+
+
+## 6. Additional repository-tree audit
+
+The recursive Git tree at the audited baseline contains only these Stage directories: Stage 1, Stage 2, Stage 4, Stage 5, Stage 6, Stage 7, Stage 9 (one test file), and Stage 13 (one status file). There are no committed Stage 3, 8, 10, 11, or 12 implementation directories. The tree also contains no `.github/workflows/` CI workflow, no `stages/data/epl/` dataset directory, and no `stages/alea_stage1/` package.
+
+This conflicts with the reports' broad wording that Stages 1–12 have tested contracts in place. The root-level v2.4.1 suite is present, but it is not evidence that the missing Stage 3/8/10/11/12 modules or their claimed tests are committed and runnable. The Stage 10 status refers to `stages/stage10/automation.py`, which is absent from the audited tree.
+
+**Required correction:** treat the missing stage modules/tests and absent CI as P0 repository-integrity work. Reconcile reports against the exact commit and list each test file actually executed. Do not state “63 tests passed” as a reproducible repository result until the 63 tests and their runner are committed and pass in CI. Historical results from a prior local session may be reported as historical evidence only, with the exact source commit and logs attached.
+
+The tree audit also found that Stage 3 is absent even though the reports describe Elo/form feature contracts as implemented. The newer Stage 9 report's Elo comparison is therefore not traceable to a committed Stage 3 implementation in this repository snapshot. Either commit the exact tested implementation and its tests, or withdraw that claim from the repository's current acceptance report.
+
+## 7. Execution boundary for this repair branch
+
+This branch currently contains this repair specification only. The source-code changes, test runs, CI results, data licence clearance, and Stage 13 acceptance have **not** been completed. Do not merge this plan as if it were a software repair. The next implementation PR must start with P0 repository integrity and Stage 1 ingestion, include tests in the same change, and attach actual CI output.
