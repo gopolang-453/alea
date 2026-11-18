@@ -221,13 +221,15 @@ class PersistentDataStore:
             if existing["payload_json"] != payload_json:
                 raise DataValidationError(f"conflicting duplicate fixture: {key}")
             return False
+        outer_transaction = self._conn.in_transaction
         self._conn.execute(
             """INSERT INTO records
             (fixture_key, kind, event_date, available_at, payload_json, source, source_id, content_hash)
             VALUES (?, 'result', ?, ?, ?, ?, ?, ?)""",
             (key, match_date.isoformat(), availability.isoformat(), payload_json, source, source_id, digest),
         )
-        self._conn.commit()
+        if not outer_transaction:
+            self._conn.commit()
         return True
 
     def ingest_openfootball_file(
@@ -248,28 +250,34 @@ class PersistentDataStore:
             raise DataValidationError("OpenFootball document must contain a matches list")
         added = 0
         source = source_url or f"openfootball:{file_path.name}"
-        for index, match in enumerate(matches):
-            if not isinstance(match, dict):
-                raise DataValidationError(f"match {index} is not an object")
-            score_block = match.get("score") or {}
-            if not isinstance(score_block, dict):
-                raise DataValidationError(f"match {index} has malformed score object")
-            score = score_block.get("ft")
-            if score is None:
-                continue  # upcoming/unplayed fixture, not a result
-            if not isinstance(score, list) or len(score) != 2:
-                raise DataValidationError(f"match {index} has malformed full-time score")
-            added += self.add_result(
-                competition=competition,
-                season=season,
-                match_date=_parse_date(match.get("date")),
-                home=match.get("team1"),
-                away=match.get("team2"),
-                home_goals=score[0],
-                away_goals=score[1],
-                source=source,
-                source_id=str(match.get("round") or index),
-            )
+        self._conn.execute("BEGIN IMMEDIATE")
+        try:
+            for index, match in enumerate(matches):
+                if not isinstance(match, dict):
+                    raise DataValidationError(f"match {index} is not an object")
+                score_block = match.get("score") or {}
+                if not isinstance(score_block, dict):
+                    raise DataValidationError(f"match {index} has malformed score object")
+                score = score_block.get("ft")
+                if score is None:
+                    continue  # upcoming/unplayed fixture, not a result
+                if not isinstance(score, list) or len(score) != 2:
+                    raise DataValidationError(f"match {index} has malformed full-time score")
+                added += self.add_result(
+                    competition=competition,
+                    season=season,
+                    match_date=_parse_date(match.get("date")),
+                    home=match.get("team1"),
+                    away=match.get("team2"),
+                    home_goals=score[0],
+                    away_goals=score[1],
+                    source=source,
+                    source_id=str(match.get("round") or index),
+                )
+            self._conn.commit()
+        except Exception:
+            self._conn.rollback()
+            raise
         return added
 
     def snapshot(self, as_of: datetime) -> Snapshot:
