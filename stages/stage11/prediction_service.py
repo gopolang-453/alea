@@ -7,6 +7,7 @@ import sqlite3
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any, Dict, Optional
+import re
 
 import numpy as np
 
@@ -29,13 +30,20 @@ def build_prediction(
     *,
     kickoff_at: Optional[datetime] = None,
     feature_status: Optional[Dict[str, str]] = None,
+    allow_new_teams: bool = False,
 ) -> Dict[str, Any]:
     """Build a JSON-safe prediction and enforce the pre-kickoff data cutoff."""
     predicted_at = _aware(prediction_time, "prediction_time")
     if isinstance(fixture_date, datetime) or not isinstance(fixture_date, date):
         raise ValueError("fixture_date must be a date")
-    if not isinstance(data_snapshot_sha256, str) or len(data_snapshot_sha256) < 16:
-        raise ValueError("a data snapshot SHA-256 fingerprint is required")
+    if not isinstance(data_snapshot_sha256, str) or not re.fullmatch(r"[0-9a-fA-F]{64}", data_snapshot_sha256):
+        raise ValueError("a full 64-character SHA-256 data fingerprint is required")
+    known_teams = set(params.get("teams", []))
+    unknown = [team for team in (home, away) if team not in known_teams]
+    if unknown and not allow_new_teams:
+        raise ValueError(f"unknown team(s) {unknown}; explicitly allow new-team priors only for genuine new teams")
+    if not params.get("model_version"):
+        raise ValueError("model parameters must include model_version")
 
     if kickoff_at is not None:
         kickoff = _aware(kickoff_at, "kickoff_at")
@@ -55,7 +63,7 @@ def build_prediction(
     if date.fromisoformat(str(training_cutoff)[:10]) >= fixture_date:
         raise ValueError("model training cutoff must precede fixture date")
 
-    raw = dc.predict(params, home, away, allow_new_teams=True)
+    raw = dc.predict(params, home, away, allow_new_teams=allow_new_teams)
     markets = raw["markets"]
     p = [float(markets["home"]), float(markets["draw"]), float(markets["away"])]
     if not np.all(np.isfinite(p)) or min(p) < 0 or not np.isclose(sum(p), 1.0, atol=1e-8):
