@@ -347,11 +347,6 @@ def main() -> int:
         holdout_rows,
         candidate_fields=("p_home_calibrated", "p_draw_calibrated", "p_away_calibrated"),
     )
-    selected_fields = (
-        ("p_home_calibrated", "p_draw_calibrated", "p_away_calibrated")
-        if calibration["should_apply"]
-        else ("p_home", "p_draw", "p_away")
-    )
     selected_metrics = calibrated_metrics if calibration["should_apply"] else holdout_report["model"]
     selected_comparison = calibrated_comparison if calibration["should_apply"] else holdout_report["model_vs_training_rate"]
     selected_model_name = (
@@ -395,7 +390,7 @@ def main() -> int:
         "development": development_report,
         "calibration": calibration,
         "final_holdout": holdout_report,
-        "registry_metrics_vs_training_rate_benchmark": registry_metrics,
+        "benchmark_metrics_vs_training_rate": registry_metrics,
     }
     (output / "report.json").write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
     print(json.dumps({
