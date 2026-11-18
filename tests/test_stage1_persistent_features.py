@@ -10,6 +10,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from stages.stage1.persistent_store import DataValidationError, PersistentDataStore
+from stages.stage3.team_features import elo_ratings
 from stages.stage4.xg_features import fixture_xg, team_xg_history
 from stages.stage5.player_features import injuries_for_team
 from stages.stage6.context_features import weather_for_fixture
@@ -89,3 +90,19 @@ def test_feature_records_require_timezone_aware_availability_and_finite_json(tmp
                 available_at=datetime(2024, 1, 1, tzinfo=timezone.utc),
                 payload={"home_xg": float("nan")}, source="test",
             )
+
+
+def test_stage3_elo_calculator_accepts_persistent_result_snapshots(tmp_path):
+    with PersistentDataStore(tmp_path / "elo.sqlite") as store:
+        store.add_result(
+            competition="Premier League", season="2023-24",
+            match_date=date(2024, 1, 1), home="Arsenal", away="Chelsea",
+            home_goals=3, away_goals=0, source="test-results",
+        )
+        ratings = elo_ratings(
+            store, datetime(2024, 1, 3, tzinfo=timezone.utc),
+            initial_rating=1500, k_factor=20, home_advantage=0,
+        )
+        assert set(ratings) == {"arsenal", "chelsea"}
+        assert ratings["arsenal"] > 1500
+        assert ratings["chelsea"] < 1500
