@@ -126,7 +126,7 @@ class DataStore:
         self._records: List[Record] = []
         self._record_index: Dict[tuple, Record] = {}
 
-    def add(self, record: Record) -> None:
+    def add(self, record: Record) -> bool:
         if record.available_at.tzinfo is None:
             raise ValueError("available_at must be timezone-aware")
         if not record.kind or not record.fixture_key or not record.source:
@@ -137,13 +137,14 @@ class DataStore:
             old_payload = json.dumps(previous.to_dict(), sort_keys=True, default=str)
             new_payload = json.dumps(record.to_dict(), sort_keys=True, default=str)
             if old_payload == new_payload:
-                return  # exact re-import: idempotent no-op
+                return False  # exact re-import: idempotent no-op
             raise ValueError(
                 "conflicting record for existing identity; preserve a source revision "
                 "with a distinct source_id instead of overwriting history"
             )
         self._record_index[identity] = record
         self._records.append(record)
+        return True
 
     def snapshot(self, as_of: datetime) -> Snapshot:
         if as_of.tzinfo is None:
@@ -294,7 +295,5 @@ def ingest_results_frame(
             },
             source=source,
         )
-        before = len(store.all_records())
-        store.add(rec)
-        n += int(len(store.all_records()) > before)
+        n += int(store.add(rec))
     return n
