@@ -125,18 +125,30 @@ class ModelRegistry:
             raise RegistryError("candidate artifact failed SHA-256 verification")
         metrics = data["models"][version]["metrics"]
         required = {
-            "n_holdout", "holdout_log_loss", "log_loss_diff_ci_upper",
-            "holdout_brier", "baseline_holdout_brier",
+            "n_holdout", "holdout_log_loss", "baseline_holdout_log_loss",
+            "log_loss_diff_ci_upper", "holdout_brier", "baseline_holdout_brier",
+            "brier_diff_ci_upper",
         }
         missing = sorted(required - set(metrics))
         if missing:
             raise RegistryError(f"promotion evidence missing metrics: {missing}")
         if metrics["n_holdout"] < min_holdout_samples:
             raise RegistryError("holdout sample is too small for promotion")
+        if metrics["holdout_log_loss"] >= metrics["baseline_holdout_log_loss"]:
+            raise RegistryError("candidate point-estimate log loss does not beat its baseline")
         if metrics["log_loss_diff_ci_upper"] >= 0:
             raise RegistryError("candidate has not proven a log-loss improvement (paired CI includes zero)")
         if metrics["holdout_brier"] > metrics["baseline_holdout_brier"] + brier_tolerance:
             raise RegistryError("candidate materially worsens Brier score")
+        if metrics["brier_diff_ci_upper"] > brier_tolerance:
+            raise RegistryError("candidate has not shown non-inferior Brier score on paired blocks")
+        baseline_version = data["models"][version].get("metadata", {}).get("comparison_baseline_version")
+        if not baseline_version or baseline_version not in data["models"]:
+            raise RegistryError("candidate must identify a registered comparison_baseline_version")
+        if data.get("champion") and baseline_version != data["champion"]:
+            raise RegistryError("candidate must be compared against the current champion")
+        if not self.verify(baseline_version):
+            raise RegistryError("comparison baseline artifact failed SHA-256 verification")
         old_champion = data.get("champion")
         data["previous_champion"] = old_champion
         data["champion"] = version
