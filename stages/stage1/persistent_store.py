@@ -191,13 +191,17 @@ class PersistentDataStore:
         source_id: Optional[str] = None,
         available_at: Optional[datetime] = None,
     ) -> bool:
-        if not competition.strip() or not season.strip() or not source.strip():
-            raise DataValidationError("competition, season and source are required")
+        if not all(isinstance(v, str) and v.strip() for v in (competition, season, source)):
+            raise DataValidationError("competition, season and source are required strings")
+        if isinstance(match_date, datetime) or not isinstance(match_date, date):
+            raise DataValidationError("match_date must be a date without a time component")
         home_name, away_name = canonical_team(home), canonical_team(away)
         if home_name == away_name:
             raise DataValidationError("a team cannot play itself")
         hg, ag = _validate_goals(home_goals, away_goals)
         availability = _aware_utc(available_at) if available_at else conservative_result_availability(match_date)
+        if availability.date() < match_date:
+            raise DataValidationError("result cannot be available before its match date")
         key = "|".join((competition.strip().lower(), season.strip(), match_date.isoformat(), home_name, away_name))
         payload = {
             "competition": competition.strip(),
@@ -247,7 +251,10 @@ class PersistentDataStore:
         for index, match in enumerate(matches):
             if not isinstance(match, dict):
                 raise DataValidationError(f"match {index} is not an object")
-            score = (match.get("score") or {}).get("ft")
+            score_block = match.get("score") or {}
+            if not isinstance(score_block, dict):
+                raise DataValidationError(f"match {index} has malformed score object")
+            score = score_block.get("ft")
             if score is None:
                 continue  # upcoming/unplayed fixture, not a result
             if not isinstance(score, list) or len(score) != 2:
