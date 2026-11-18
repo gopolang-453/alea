@@ -43,3 +43,14 @@ Not run as a full combined system. Only Elo showed a clear improvement in this q
 - Bookmaker de-vig comparison was not run (odds columns exist in the CSVs but were not scored in this pass).
 
 **Stage 9 core (9.1–9.3) is complete and reproducible. 9.4 has initial Elo evidence. 9.5 is open.**
+
+
+---
+
+## Repository reproducibility update — 18 November 2026
+
+A later repository audit found that the 1,900-match historical run described above is **not reproducible from the committed checkout**: the referenced five-season CSV files and the persistent-store module originally imported by the Stage 9.1 test were absent. Treat the metrics above as reported experiment results, not independently verified release evidence.
+
+The repository now has a SQLite-backed Stage 1 store and CSV importer, idempotent duplicate handling, conservative date-only result availability, a small synthetic CSV fixture, and regression tests. GitHub Actions run [44297685638](https://github.com/gopolang-453/alea/actions/runs/44297685638) passed 8 Stage 1 / Stage 9.1 tests on commit `01b8a5d8890ff0cb66b3ec1998b898d105a25559`.
+
+That smoke test does **not** reproduce the 1,900-match dataset or the 1,600-prediction walk-forward. The production Dixon–Coles MLE walk-forward and Stage 9.5 combined-model evaluation remain open. Stage 13 remains NOT COMPLETE.
