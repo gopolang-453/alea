@@ -126,3 +126,23 @@ def test_runner_excludes_results_not_yet_available_at_prediction_cutoff(monkeypa
     assert report["n_predictions"] == 2
     assert len(seen) == 1
     assert set(seen[0]) == {date(2024, 1, 1)}
+
+
+
+def test_paired_week_bootstrap_is_deterministic_and_reports_candidate_gain():
+    rows = [
+        {"date": "2024-01-06", "actual": "H", "p_home": 0.7, "p_draw": 0.2, "p_away": 0.1,
+         "train_rate_home": 0.5, "train_rate_draw": 0.3, "train_rate_away": 0.2},
+        {"date": "2024-01-07", "actual": "D", "p_home": 0.1, "p_draw": 0.8, "p_away": 0.1,
+         "train_rate_home": 0.2, "train_rate_draw": 0.6, "train_rate_away": 0.2},
+        {"date": "2024-01-13", "actual": "A", "p_home": 0.1, "p_draw": 0.2, "p_away": 0.7,
+         "train_rate_home": 0.2, "train_rate_draw": 0.3, "train_rate_away": 0.5},
+        {"date": "2024-01-14", "actual": "H", "p_home": 0.8, "p_draw": 0.1, "p_away": 0.1,
+         "train_rate_home": 0.5, "train_rate_draw": 0.3, "train_rate_away": 0.2},
+    ]
+    first = runner.paired_week_bootstrap(rows, samples=200, seed=7)
+    second = runner.paired_week_bootstrap(rows, samples=200, seed=7)
+    assert first == second
+    assert first["n_week_blocks"] == 2
+    assert first["log_loss_difference_candidate_minus_baseline"] < 0
+    assert first["log_loss_difference_ci95_upper"] < 0
