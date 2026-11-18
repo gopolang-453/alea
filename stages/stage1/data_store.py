@@ -125,7 +125,7 @@ class DataStore:
     def __init__(self) -> None:
         self._records: List[Record] = []
 
-    def add(self, record: Record) -> None:
+    def add(self, record: Record) -> bool:
         if record.available_at.tzinfo is None or record.available_at.utcoffset() is None:
             raise ValueError("available_at must be timezone-aware")
         if not record.kind or not record.fixture_key or not record.source:
@@ -138,7 +138,7 @@ class DataStore:
             if existing_identity != identity:
                 continue
             if existing.payload == record.payload and existing.available_at == record.available_at:
-                return
+                return False
             raise DataValidationError(
                 f"conflicting duplicate record: {record.kind} {record.fixture_key} from {record.source}"
             )
@@ -284,6 +284,6 @@ def ingest_results_frame(
             },
             source=source,
         )
-        store.add(rec)
-        n += 1
+        if store.add(rec):
+            n += 1
     return n
