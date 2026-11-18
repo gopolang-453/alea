@@ -27,12 +27,21 @@ def _rows(store: DataStore, as_of: datetime, before_date: Optional[date] = None)
         event_date = date.fromisoformat(str(p["date"])[:10])
         if before_date is not None and event_date >= before_date:
             continue
+        goals = []
+        for key in ("fthg", "ftag"):
+            try:
+                value = float(p[key])
+            except (KeyError, TypeError, ValueError) as exc:
+                raise ValueError(f"invalid stored result field {key}") from exc
+            if value < 0 or value > 30 or not value.is_integer():
+                raise ValueError(f"invalid stored result field {key}: {p[key]!r}")
+            goals.append(int(value))
         rows.append({
             "date": event_date,
             "home": canonical_team(p["home"]),
             "away": canonical_team(p["away"]),
-            "home_goals": int(p["fthg"]),
-            "away_goals": int(p["ftag"]),
+            "home_goals": goals[0],
+            "away_goals": goals[1],
             "available_at": record.available_at,
         })
     rows.sort(key=lambda r: (r["date"], r["home"], r["away"]))
@@ -50,6 +59,9 @@ def elo_ratings(
 ) -> Dict[str, float]:
     """Calculate ratings from results available by as_of, in date-batched order."""
     _aware(as_of)
+    if not all(map(lambda value: value == value and abs(value) != float("inf"),
+                   (k_factor, initial_rating, home_advantage))):
+        raise ValueError("Elo parameters must be finite")
     if k_factor <= 0 or initial_rating <= 0:
         raise ValueError("k_factor and initial_rating must be positive")
     rows = _rows(store, as_of, before_date)
