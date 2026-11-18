@@ -9,6 +9,9 @@ on:
       - "stages/**"
       - "tests/**"
       - "requirements.txt"
+      - "requirements-dev.txt"
+      - "pytest.ini"
+      - "scripts/**"
       - ".github/workflows/stage1-regression.yml"
   pull_request:
     paths:
@@ -22,6 +25,10 @@ on:
 
 permissions:
   contents: read
+
+concurrency:
+  group: alea-tests-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   tests:
