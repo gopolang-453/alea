@@ -390,61 +390,61 @@ def ingest_results_frame(
     n = 0
     transaction = store.transaction() if isinstance(store, PersistentDataStore) else nullcontext()
     with transaction:
-      for _, row in df.iterrows():
-          date = pd.Timestamp(row["Date"])
-          if pd.isna(date):
-              raise DataValidationError("invalid or missing match date")
-          match_day = date.date()
-          if "available_at" in df.columns and pd.notna(row.get("available_at")):
-              available_ts = pd.Timestamp(row["available_at"])
-              if available_ts.tzinfo is None:
-                  raise DataValidationError("available_at values must be timezone-aware")
-              available = available_ts.tz_convert("UTC").to_pydatetime()
-          else:
-              # Date-only feeds lack kickoff/result-publication times. Delaying
-              # availability is safer than exposing a final score on match day.
-              day_start = pd.Timestamp(match_day).tz_localize("UTC")
-              available = (day_start + pd.Timedelta(hours=available_offset_hours)).to_pydatetime()
-          if available.date() < match_day:
-              raise DataValidationError("result cannot be available before its match date")
-          if pd.isna(row["HomeTeam"]) or pd.isna(row["AwayTeam"]):
-              raise DataValidationError("team names must not be missing")
-          home = canonical_team(row["HomeTeam"])
-          away = canonical_team(row["AwayTeam"])
-          if home == away:
-              raise DataValidationError("a team cannot play itself")
-          goals = []
-          for column in ("FTHG", "FTAG"):
-              value = row[column]
-              if isinstance(value, bool):
-                  raise DataValidationError("full-time goals must be non-negative integers")
-              try:
-                  numeric = float(value)
-              except (TypeError, ValueError, OverflowError) as exc:
-                  raise DataValidationError("full-time goals must be non-negative integers") from exc
-              if not pd.notna(numeric) or not numeric.is_integer() or numeric < 0 or numeric > 30:
-                  raise DataValidationError("full-time goals must be non-negative integers")
-              goals.append(int(numeric))
-          fthg, ftag = goals
-          season = None
-          if "Season" in df.columns and pd.notna(row.get("Season")):
-              season = str(row["Season"]).strip()
-              if not season:
-                  raise DataValidationError("season must not be an empty string")
-          key = f"{match_day.isoformat()}|{home}|{away}"
-          rec = Record(
-              kind="result",
-              fixture_key=key,
-              available_at=available,
-              payload={
-                  "date": match_day.isoformat(),
-                  "home": home,
-                  "away": away,
-                  "fthg": fthg,
-                  "ftag": ftag,
-                  **({"season": season} if season is not None else {}),
-              },
-              source=source,
-          )
-          n += int(store.add(rec))
+        for _, row in df.iterrows():
+            date = pd.Timestamp(row["Date"])
+            if pd.isna(date):
+                raise DataValidationError("invalid or missing match date")
+            match_day = date.date()
+            if "available_at" in df.columns and pd.notna(row.get("available_at")):
+                available_ts = pd.Timestamp(row["available_at"])
+                if available_ts.tzinfo is None:
+                    raise DataValidationError("available_at values must be timezone-aware")
+                available = available_ts.tz_convert("UTC").to_pydatetime()
+            else:
+                # Date-only feeds lack kickoff/result-publication times. Delaying
+                # availability is safer than exposing a final score on match day.
+                day_start = pd.Timestamp(match_day).tz_localize("UTC")
+                available = (day_start + pd.Timedelta(hours=available_offset_hours)).to_pydatetime()
+            if available.date() < match_day:
+                raise DataValidationError("result cannot be available before its match date")
+            if pd.isna(row["HomeTeam"]) or pd.isna(row["AwayTeam"]):
+                raise DataValidationError("team names must not be missing")
+            home = canonical_team(row["HomeTeam"])
+            away = canonical_team(row["AwayTeam"])
+            if home == away:
+                raise DataValidationError("a team cannot play itself")
+            goals = []
+            for column in ("FTHG", "FTAG"):
+                value = row[column]
+                if isinstance(value, bool):
+                    raise DataValidationError("full-time goals must be non-negative integers")
+                try:
+                    numeric = float(value)
+                except (TypeError, ValueError, OverflowError) as exc:
+                    raise DataValidationError("full-time goals must be non-negative integers") from exc
+                if not pd.notna(numeric) or not numeric.is_integer() or numeric < 0 or numeric > 30:
+                    raise DataValidationError("full-time goals must be non-negative integers")
+                goals.append(int(numeric))
+            fthg, ftag = goals
+            season = None
+            if "Season" in df.columns and pd.notna(row.get("Season")):
+                season = str(row["Season"]).strip()
+                if not season:
+                    raise DataValidationError("season must not be an empty string")
+            key = f"{match_day.isoformat()}|{home}|{away}"
+            rec = Record(
+                kind="result",
+                fixture_key=key,
+                available_at=available,
+                payload={
+                    "date": match_day.isoformat(),
+                    "home": home,
+                    "away": away,
+                    "fthg": fthg,
+                    "ftag": ftag,
+                    **({"season": season} if season is not None else {}),
+                },
+                source=source,
+            )
+            n += int(store.add(rec))
     return n
