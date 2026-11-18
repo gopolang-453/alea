@@ -29,6 +29,93 @@ from stages.stage1.data_store import PersistentDataStore
 from stages.stage8.calibration import apply_temperature, fit_temperature
 
 
+def _outcome_indices(rows: list[dict]) -> np.ndarray:
+    mapping = {"H": 0, "D": 1, "A": 2}
+    try:
+        return np.asarray([mapping[row["actual"]] for row in rows], dtype=int)
+    except KeyError as exc:
+        raise ValueError(f"invalid actual outcome: {exc}") from exc
+
+
+def _probability_matrix(rows: list[dict], fields: tuple[str, str, str]) -> np.ndarray:
+    matrix = np.asarray([[float(row[field]) for field in fields] for row in rows], dtype=float)
+    if matrix.ndim != 2 or matrix.shape[1] != 3 or not np.all(np.isfinite(matrix)):
+        raise ValueError("prediction probabilities must be a finite n x 3 matrix")
+    if np.any(matrix < 0) or not np.allclose(matrix.sum(axis=1), 1.0, atol=1e-8):
+        raise ValueError("prediction probability rows must be non-negative and sum to 1")
+    return matrix
+
+
+def paired_week_bootstrap(
+    rows: list[dict],
+    candidate_fields: tuple[str, str, str] = ("p_home", "p_draw", "p_away"),
+    baseline_fields: tuple[str, str, str] = (
+        "train_rate_home", "train_rate_draw", "train_rate_away"
+    ),
+    *,
+    samples: int = 1000,
+    seed: int = 20261118,
+) -> dict:
+    """Paired bootstrap of candidate-minus-baseline losses, resampling ISO-week blocks."""
+    if samples < 1:
+        raise ValueError("bootstrap samples must be positive")
+    if not rows:
+        raise ValueError("cannot bootstrap an empty prediction set")
+    candidate = _probability_matrix(rows, candidate_fields)
+    baseline = _probability_matrix(rows, baseline_fields)
+    actual = _outcome_indices(rows)
+    one_hot = np.eye(3)[actual]
+    indices = np.arange(len(rows))
+    candidate_log = -np.log(np.clip(candidate[indices, actual], 1e-15, 1.0))
+    baseline_log = -np.log(np.clip(baseline[indices, actual], 1e-15, 1.0))
+    candidate_brier = np.sum((candidate - one_hot) ** 2, axis=1)
+    baseline_brier = np.sum((baseline - one_hot) ** 2, axis=1)
+    log_diff = candidate_log - baseline_log
+    brier_diff = candidate_brier - baseline_brier
+
+    groups: dict[tuple[int, int], list[int]] = {}
+    for index, row in enumerate(rows):
+        iso = pd.Timestamp(row["date"]).isocalendar()
+        groups.setdefault((int(iso.year), int(iso.week)), []).append(index)
+    blocks = [np.asarray(group, dtype=int) for group in groups.values()]
+    rng = np.random.default_rng(seed)
+    boot_log = np.empty(samples, dtype=float)
+    boot_brier = np.empty(samples, dtype=float)
+    for iteration in range(samples):
+        chosen = rng.integers(0, len(blocks), size=len(blocks))
+        sample_indices = np.concatenate([blocks[index] for index in chosen])
+        boot_log[iteration] = float(np.mean(log_diff[sample_indices]))
+        boot_brier[iteration] = float(np.mean(brier_diff[sample_indices]))
+
+    return {
+        "method": "paired_iso_week_block_bootstrap",
+        "n_predictions": int(len(rows)),
+        "n_week_blocks": int(len(blocks)),
+        "bootstrap_samples": int(samples),
+        "seed": int(seed),
+        "log_loss_difference_candidate_minus_baseline": float(np.mean(log_diff)),
+        "log_loss_difference_ci95_lower": float(np.quantile(boot_log, 0.025)),
+        "log_loss_difference_ci95_upper": float(np.quantile(boot_log, 0.975)),
+        "brier_difference_candidate_minus_baseline": float(np.mean(brier_diff)),
+        "brier_difference_ci95_lower": float(np.quantile(boot_brier, 0.025)),
+        "brier_difference_ci95_upper": float(np.quantile(boot_brier, 0.975)),
+    }
+
+
+def metrics_for_rows(
+    rows: list[dict],
+    fields: tuple[str, str, str] = ("p_home", "p_draw", "p_away"),
+) -> dict:
+    probs = _probability_matrix(rows, fields)
+    outcomes = np.eye(3)[_outcome_indices(rows)]
+    return {
+        "log_loss": dc.log_loss_score(probs, outcomes),
+        "brier": dc.brier_score(probs, outcomes),
+        "rps": dc.rps_score(probs, outcomes),
+        "accuracy": float(np.mean(np.argmax(probs, axis=1) == np.argmax(outcomes, axis=1))),
+    }
+
+
 def evaluate_period(
     evaluation: pd.DataFrame,
     seed_training: pd.DataFrame,
@@ -180,6 +267,7 @@ def evaluate_period(
             "rps": dc.rps_score(uniform, outcomes),
             "accuracy": float(np.mean(np.argmax(uniform, axis=1) == np.argmax(outcomes, axis=1))),
         },
+        "model_vs_training_rate": paired_week_bootstrap(prediction_rows),
         "folds": fold_rows,
     }
     return report, prediction_rows
