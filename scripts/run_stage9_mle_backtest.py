@@ -116,6 +116,54 @@ def metrics_for_rows(
     }
 
 
+def validate_historical_dataset(
+    data: pd.DataFrame,
+    *,
+    expected_matches_per_season: int = 380,
+    expected_teams_per_season: int = 20,
+) -> dict:
+    required = {"Date", "Season", "HomeTeam", "AwayTeam", "FTHG", "FTAG", "available_at"}
+    missing = sorted(required - set(data.columns))
+    if missing:
+        raise ValueError(f"historical dataset is missing required columns: {missing}")
+    if data[list(required)].isna().any().any():
+        raise ValueError("historical dataset contains missing required values")
+    if data.duplicated(["Date", "HomeTeam", "AwayTeam"]).any():
+        raise ValueError("historical dataset contains duplicate fixtures")
+    for column in ("FTHG", "FTAG"):
+        numeric = pd.to_numeric(data[column], errors="coerce")
+        if numeric.isna().any() or (numeric < 0).any() or (numeric > 30).any():
+            raise ValueError(f"historical dataset contains invalid {column} values")
+        if not np.all(np.equal(numeric, np.floor(numeric))):
+            raise ValueError(f"historical dataset contains non-integer {column} values")
+    availability = pd.to_datetime(data["available_at"], utc=True, errors="coerce")
+    if availability.isna().any():
+        raise ValueError("historical dataset contains invalid availability timestamps")
+
+    season_report = {}
+    for season, frame in data.groupby("Season"):
+        teams = set(frame["HomeTeam"]) | set(frame["AwayTeam"])
+        if len(frame) != expected_matches_per_season:
+            raise ValueError(
+                f"season {season} has {len(frame)} matches; expected {expected_matches_per_season}"
+            )
+        if len(teams) != expected_teams_per_season:
+            raise ValueError(
+                f"season {season} has {len(teams)} teams; expected {expected_teams_per_season}"
+            )
+        season_report[str(season)] = {
+            "matches": int(len(frame)),
+            "teams": int(len(teams)),
+            "first_date": str(frame["Date"].min().date()),
+            "last_date": str(frame["Date"].max().date()),
+        }
+    return {
+        "matches": int(len(data)),
+        "seasons": season_report,
+        "unique_fixtures": int(data[["Date", "HomeTeam", "AwayTeam"]].drop_duplicates().shape[0]),
+    }
+
+
 def evaluate_period(
     evaluation: pd.DataFrame,
     seed_training: pd.DataFrame,
@@ -293,6 +341,7 @@ def main() -> int:
         raise SystemExit("No imported results found. Run scripts/fetch_openfootball.py first.")
     data["Date"] = pd.to_datetime(data["Date"])
     data = data.sort_values("Date").reset_index(drop=True)
+    dataset_validation = validate_historical_dataset(data)
     holdout = data[data["Season"] == args.holdout_season].copy()
     if holdout.empty:
         raise SystemExit(f"Holdout season {args.holdout_season!r} is not in the database.")
@@ -375,6 +424,7 @@ def main() -> int:
     report = {
         "created_at_utc": datetime.now(timezone.utc).isoformat(),
         "database_fingerprint": fingerprint,
+        "dataset_validation": dataset_validation,
         "model_file": "alea_predictor_v2_4_1.py",
         "model_version": dc.MODEL_VERSION,
         "holdout_season": args.holdout_season,
