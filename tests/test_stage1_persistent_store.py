@@ -74,3 +74,30 @@ def test_invalid_score_values_fail_closed(bad_score):
     frame.loc[0, "FTHG"] = bad_score
     with pytest.raises(DataValidationError):
         ingest_results_frame(DataStore(), frame)
+
+
+
+def test_persistent_import_rolls_back_entire_batch_on_invalid_row(tmp_path):
+    frame = pd.concat([
+        sample_frame(),
+        pd.DataFrame([{
+            "Date": "2023-08-12", "Season": "2023-24",
+            "HomeTeam": "Arsenal", "AwayTeam": "Chelsea", "FTHG": -1, "FTAG": 0,
+        }]),
+    ], ignore_index=True)
+    with PersistentDataStore(tmp_path / "atomic.sqlite") as store:
+        with pytest.raises(DataValidationError):
+            ingest_results_frame(store, frame, source="openfootball")
+        assert store.all_records() == []
+
+
+def test_explicit_timestamp_does_not_require_date_only_offset(tmp_path):
+    frame = sample_frame()
+    frame["available_at"] = "2023-08-11T22:00:00Z"
+    with PersistentDataStore(tmp_path / "explicit.sqlite") as store:
+        assert ingest_results_frame(
+            store, frame, source="source-with-time", available_offset_hours=0
+        ) == 1
+        assert store.all_records()[0].available_at == datetime(
+            2023, 8, 11, 22, 0, tzinfo=timezone.utc
+        )
