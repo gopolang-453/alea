@@ -31,7 +31,10 @@ def artifact(tmp_path, name, body):
 
 def test_registry_registers_verifies_promotes_and_rolls_back(tmp_path):
     registry = ModelRegistry(tmp_path / "registry")
-    registry.register("baseline", artifact(tmp_path, "baseline.json", '{"base":true}'), {})
+    registry.register(
+        "baseline", artifact(tmp_path, "baseline.json", '{"base":true}'),
+        {"holdout_log_loss": 1.0, "holdout_brier": 0.57},
+    )
     first = registry.register(
         "model-1", artifact(tmp_path, "m1.json", '{"a":1}'), GOOD_METRICS,
         {"comparison_baseline_version": "baseline"},
@@ -39,8 +42,15 @@ def test_registry_registers_verifies_promotes_and_rolls_back(tmp_path):
     assert registry.verify("model-1")
     assert registry.promote("model-1")["champion"] == "model-1"
 
+    second_metrics = dict(
+        GOOD_METRICS,
+        holdout_log_loss=0.90,
+        baseline_holdout_log_loss=0.95,
+        holdout_brier=0.54,
+        baseline_holdout_brier=0.56,
+    )
     second = registry.register(
-        "model-2", artifact(tmp_path, "m2.json", '{"a":2}'), GOOD_METRICS,
+        "model-2", artifact(tmp_path, "m2.json", '{"a":2}'), second_metrics,
         {"comparison_baseline_version": "model-1"},
     )
     assert registry.verify("model-2")
@@ -53,7 +63,10 @@ def test_registry_registers_verifies_promotes_and_rolls_back(tmp_path):
 
 def test_registry_refuses_candidate_without_strong_holdout_evidence(tmp_path):
     registry = ModelRegistry(tmp_path / "registry")
-    registry.register("baseline", artifact(tmp_path, "baseline.json", "baseline"), {})
+    registry.register(
+        "baseline", artifact(tmp_path, "baseline.json", "baseline"),
+        {"holdout_log_loss": 1.0, "holdout_brier": 0.57},
+    )
     weak = dict(GOOD_METRICS, log_loss_diff_ci_upper=0.01)
     registry.register(
         "weak", artifact(tmp_path, "weak.json", "model"), weak,
@@ -65,7 +78,10 @@ def test_registry_refuses_candidate_without_strong_holdout_evidence(tmp_path):
 
 def test_registry_detects_artifact_tampering(tmp_path):
     registry = ModelRegistry(tmp_path / "registry")
-    registry.register("baseline", artifact(tmp_path, "baseline.json", "baseline"), {})
+    registry.register(
+        "baseline", artifact(tmp_path, "baseline.json", "baseline"),
+        {"holdout_log_loss": 1.0, "holdout_brier": 0.57},
+    )
     record = registry.register(
         "model-1", artifact(tmp_path, "model.json", "original"), GOOD_METRICS,
         {"comparison_baseline_version": "baseline"},
@@ -80,7 +96,10 @@ def test_registry_requires_evidence_and_valid_version(tmp_path):
     registry = ModelRegistry(tmp_path / "registry")
     with pytest.raises(RegistryError, match="unsupported characters"):
         registry.register("../bad", artifact(tmp_path, "bad.json", "x"), GOOD_METRICS)
-    registry.register("baseline", artifact(tmp_path, "baseline.json", "base"), {})
+    registry.register(
+        "baseline", artifact(tmp_path, "baseline.json", "base"),
+        {"holdout_log_loss": 1.0, "holdout_brier": 0.57},
+    )
     registry.register(
         "no-evidence", artifact(tmp_path, "candidate.json", "x"), {},
         {"comparison_baseline_version": "baseline"},
