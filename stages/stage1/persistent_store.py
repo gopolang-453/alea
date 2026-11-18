@@ -108,6 +108,7 @@ class Snapshot:
             p = record.payload
             rows.append({
                 "Date": p["date"],
+                "Season": p["season"],
                 "HomeTeam": p["home"],
                 "AwayTeam": p["away"],
                 "FTHG": p["fthg"],
@@ -115,7 +116,7 @@ class Snapshot:
                 "available_at": record.available_at,
                 "source": record.source,
             })
-        columns = ["Date", "HomeTeam", "AwayTeam", "FTHG", "FTAG", "available_at", "source"]
+        columns = ["Date", "Season", "HomeTeam", "AwayTeam", "FTHG", "FTAG", "available_at", "source"]
         frame = pd.DataFrame(rows, columns=columns)
         if not frame.empty:
             frame["Date"] = pd.to_datetime(frame["Date"])
