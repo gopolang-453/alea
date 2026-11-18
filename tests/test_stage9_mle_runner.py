@@ -146,3 +146,31 @@ def test_paired_week_bootstrap_is_deterministic_and_reports_candidate_gain():
     assert first["n_week_blocks"] == 2
     assert first["log_loss_difference_candidate_minus_baseline"] < 0
     assert first["log_loss_difference_ci95_upper"] < 0
+
+
+
+def test_historical_dataset_validator_checks_season_counts_teams_and_duplicates():
+    rows = []
+    for season, start in [("2022-23", "2022-08-01"), ("2023-24", "2023-08-01")]:
+        for offset, (home, away, hg, ag) in enumerate([
+            ("arsenal", "chelsea", 2, 1),
+            ("chelsea", "arsenal", 0, 0),
+        ]):
+            day = pd.Timestamp(start) + pd.Timedelta(days=offset)
+            rows.append({
+                "Date": day, "Season": season, "HomeTeam": home, "AwayTeam": away,
+                "FTHG": hg, "FTAG": ag,
+                "available_at": day.tz_localize("UTC") + pd.Timedelta(hours=36),
+            })
+    data = pd.DataFrame(rows)
+    report = runner.validate_historical_dataset(
+        data, expected_matches_per_season=2, expected_teams_per_season=2
+    )
+    assert report["matches"] == 4
+    assert report["seasons"]["2022-23"]["teams"] == 2
+
+    duplicate = pd.concat([data, data.iloc[[0]]], ignore_index=True)
+    with pytest.raises(ValueError, match="duplicate fixtures"):
+        runner.validate_historical_dataset(
+            duplicate, expected_matches_per_season=2, expected_teams_per_season=2
+        )
