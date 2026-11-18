@@ -5,16 +5,16 @@ on:
     branches: [main]
     paths:
       - "stages/stage1/**"
+      - "stages/stage9/tests/test_stage9_1_real_data.py"
       - "tests/test_stage1_data_store.py"
-      - "stages/stage9/tests/test_stage9_1_real_data.py"
-      - "tests/fixtures/epl_sample.csv"
-      - "stages/stage9/tests/test_stage9_1_real_data.py"
       - "tests/fixtures/epl_sample.csv"
       - ".github/workflows/stage1-regression.yml"
   pull_request:
     paths:
       - "stages/stage1/**"
+      - "stages/stage9/tests/test_stage9_1_real_data.py"
       - "tests/test_stage1_data_store.py"
+      - "tests/fixtures/epl_sample.csv"
       - ".github/workflows/stage1-regression.yml"
   workflow_dispatch:
 
