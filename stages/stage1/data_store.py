@@ -376,6 +376,8 @@ def ingest_results_frame(
             # availability is safer than exposing a final score on match day.
             day_start = pd.Timestamp(match_day).tz_localize("UTC")
             available = (day_start + pd.Timedelta(hours=available_offset_hours)).to_pydatetime()
+        if available.date() < match_day:
+            raise DataValidationError("result cannot be available before its match date")
         home = canonical_team(str(row["HomeTeam"]))
         away = canonical_team(str(row["AwayTeam"]))
         if home == away:
