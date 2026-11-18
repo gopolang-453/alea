@@ -3,7 +3,7 @@
 
 Run after importing OpenFootball results:
   python scripts/fetch_openfootball.py
-  python scripts/run_stage9_mle_backtest.py --holdout-season 2023-24
+  python scripts/run_stage9_mle_backtest.py --holdout-season 2023-24 --step-days 56
 
 The holdout season is evaluated prequentially: at each date block, the model may
 use earlier completed results from that same season, but never that block's
