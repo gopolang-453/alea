@@ -94,3 +94,26 @@ def test_prediction_requires_prediction_before_kickoff_and_valid_model_cutoff(mo
             bad, "Arsenal", "Chelsea", date(2024, 2, 1),
             datetime(2024, 1, 31, 12, tzinfo=timezone.utc), "d" * 64,
         )
+
+
+
+def test_prediction_service_canonicalises_team_variants(monkeypatch):
+    seen = {}
+    def capture(params, home, away, allow_new_teams):
+        seen["teams"] = (home, away)
+        return fake_prediction(params, home, away, allow_new_teams)
+    monkeypatch.setattr(service.dc, "predict", capture)
+    service.build_prediction(
+        params(), "Arsenal FC", "Chelsea FC", date(2024, 2, 1),
+        datetime(2024, 1, 31, 12, tzinfo=timezone.utc), "e" * 64,
+    )
+    assert seen["teams"] == ("arsenal", "chelsea")
+
+
+def test_prediction_service_rejects_same_canonical_team_twice(monkeypatch):
+    monkeypatch.setattr(service.dc, "predict", fake_prediction)
+    with pytest.raises(ValueError, match="must be different"):
+        service.build_prediction(
+            params(), "Arsenal FC", "Arsenal", date(2024, 2, 1),
+            datetime(2024, 1, 31, 12, tzinfo=timezone.utc), "f" * 64,
+        )
