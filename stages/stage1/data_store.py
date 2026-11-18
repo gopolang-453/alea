@@ -124,10 +124,25 @@ class DataStore:
 
     def __init__(self) -> None:
         self._records: List[Record] = []
+        self._record_index: Dict[tuple, Record] = {}
 
     def add(self, record: Record) -> None:
         if record.available_at.tzinfo is None:
             raise ValueError("available_at must be timezone-aware")
+        if not record.kind or not record.fixture_key or not record.source:
+            raise ValueError("kind, fixture_key, and source are required")
+        identity = (record.kind, record.fixture_key, record.source, record.source_id)
+        previous = self._record_index.get(identity)
+        if previous is not None:
+            old_payload = json.dumps(previous.to_dict(), sort_keys=True, default=str)
+            new_payload = json.dumps(record.to_dict(), sort_keys=True, default=str)
+            if old_payload == new_payload:
+                return  # exact re-import: idempotent no-op
+            raise ValueError(
+                "conflicting record for existing identity; preserve a source revision "
+                "with a distinct source_id instead of overwriting history"
+            )
+        self._record_index[identity] = record
         self._records.append(record)
 
     def snapshot(self, as_of: datetime) -> Snapshot:
@@ -220,36 +235,66 @@ def ingest_results_frame(
     store: DataStore,
     df: pd.DataFrame,
     source: str = "football-data",
-    available_offset_hours: float = 3.0,
+    available_offset_hours: float = 36.0,
 ) -> int:
     """
-    Turn a standard ALEA results DataFrame into timestamped records.
-    Each result is marked available `available_offset_hours` after the match date
-    (conservative default: assume the score is known a few hours after kick-off).
-    Returns the number of records added.
+    Ingest final results with a deliberately conservative availability time.
+
+    If the frame has an `available_at` column, that source publication timestamp
+    is used and must be timezone-aware. Otherwise, date-only historical feeds do
+    not reveal the actual publication time, so the result is withheld until
+    36 hours after midnight UTC on the match date. This is a conservative
+    date-only policy, not a claim about the provider's exact publication time.
+
+    Exact duplicate imports are no-ops. Conflicting revisions must use a distinct
+    source_id at the Record layer so prior snapshots remain auditable.
+    Returns the number of newly added records.
     """
     require_columns(df, ["Date", "HomeTeam", "AwayTeam", "FTHG", "FTAG"])
+    if available_offset_hours < 0:
+        raise ValueError("available_offset_hours must be non-negative")
     n = 0
     for _, row in df.iterrows():
         date = pd.Timestamp(row["Date"])
-        # Treat the match date as midnight UTC, then add the offset
-        available = (date.tz_localize("UTC") + pd.Timedelta(hours=available_offset_hours)).to_pydatetime()
+        if pd.isna(date):
+            raise DataValidationError("invalid or missing match date")
+        match_day = date.date()
+        if "available_at" in df.columns and pd.notna(row.get("available_at")):
+            available_ts = pd.Timestamp(row["available_at"])
+            if available_ts.tzinfo is None:
+                raise DataValidationError("available_at values must be timezone-aware")
+            available = available_ts.tz_convert("UTC").to_pydatetime()
+        else:
+            # Date-only feeds lack kickoff/result-publication times. Delaying
+            # availability is safer than exposing a final score on match day.
+            day_start = pd.Timestamp(match_day).tz_localize("UTC")
+            available = (day_start + pd.Timedelta(hours=available_offset_hours)).to_pydatetime()
         home = canonical_team(str(row["HomeTeam"]))
         away = canonical_team(str(row["AwayTeam"]))
-        key = f"{date.date().isoformat()}|{home}|{away}"
+        if home == away:
+            raise DataValidationError("a team cannot play itself")
+        try:
+            fthg = int(row["FTHG"])
+            ftag = int(row["FTAG"])
+        except (TypeError, ValueError, OverflowError) as exc:
+            raise DataValidationError("full-time goals must be non-negative integers") from exc
+        if fthg < 0 or ftag < 0 or fthg != row["FTHG"] or ftag != row["FTAG"]:
+            raise DataValidationError("full-time goals must be non-negative integers")
+        key = f"{match_day.isoformat()}|{home}|{away}"
         rec = Record(
             kind="result",
             fixture_key=key,
             available_at=available,
             payload={
-                "date": date.date().isoformat(),
+                "date": match_day.isoformat(),
                 "home": home,
                 "away": away,
-                "fthg": int(row["FTHG"]),
-                "ftag": int(row["FTAG"]),
+                "fthg": fthg,
+                "ftag": ftag,
             },
             source=source,
         )
+        before = len(store.all_records())
         store.add(rec)
-        n += 1
+        n += int(len(store.all_records()) > before)
     return n
