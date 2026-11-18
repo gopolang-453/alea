@@ -126,8 +126,22 @@ class DataStore:
         self._records: List[Record] = []
 
     def add(self, record: Record) -> None:
-        if record.available_at.tzinfo is None:
+        if record.available_at.tzinfo is None or record.available_at.utcoffset() is None:
             raise ValueError("available_at must be timezone-aware")
+        if not record.kind or not record.fixture_key or not record.source:
+            raise DataValidationError("record kind, fixture_key and source are required")
+        identity = (record.kind, record.fixture_key, record.source, record.source_id)
+        for existing in self._records:
+            existing_identity = (
+                existing.kind, existing.fixture_key, existing.source, existing.source_id
+            )
+            if existing_identity != identity:
+                continue
+            if existing.payload == record.payload and existing.available_at == record.available_at:
+                return
+            raise DataValidationError(
+                f"conflicting duplicate record: {record.kind} {record.fixture_key} from {record.source}"
+            )
         self._records.append(record)
 
     def snapshot(self, as_of: datetime) -> Snapshot:
@@ -220,20 +234,27 @@ def ingest_results_frame(
     store: DataStore,
     df: pd.DataFrame,
     source: str = "football-data",
-    available_offset_hours: float = 3.0,
+    available_offset_hours: float = 24.0,
 ) -> int:
     """
     Turn a standard ALEA results DataFrame into timestamped records.
-    Each result is marked available `available_offset_hours` after the match date
-    (conservative default: assume the score is known a few hours after kick-off).
-    Returns the number of records added.
+    Each date-only result is marked available at least 24 hours after the
+    match date. This conservative policy avoids same-day leakage when kickoff
+    and result-publication timestamps are unavailable. Smaller offsets are rejected.
+    Returns the number of newly added records.
     """
     require_columns(df, ["Date", "HomeTeam", "AwayTeam", "FTHG", "FTAG"])
+    if not isinstance(available_offset_hours, (int, float)) or available_offset_hours < 24:
+        raise DataValidationError("date-only result availability offset must be at least 24 hours")
     n = 0
     for _, row in df.iterrows():
         date = pd.Timestamp(row["Date"])
-        # Treat the match date as midnight UTC, then add the offset
-        available = (date.tz_localize("UTC") + pd.Timedelta(hours=available_offset_hours)).to_pydatetime()
+        if pd.isna(date):
+            raise DataValidationError("invalid match date in results frame")
+        if date.tzinfo is not None:
+            date = date.tz_localize(None)
+        # Date-only historical feeds do not identify the actual final whistle.
+        available = (date.normalize().tz_localize("UTC") + pd.Timedelta(hours=available_offset_hours)).to_pydatetime()
         home = canonical_team(str(row["HomeTeam"]))
         away = canonical_team(str(row["AwayTeam"]))
         key = f"{date.date().isoformat()}|{home}|{away}"
