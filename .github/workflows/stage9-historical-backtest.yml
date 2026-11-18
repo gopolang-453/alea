@@ -15,7 +15,7 @@ permissions:
 
 concurrency:
   group: stage9-mle-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   historical-backtest:
