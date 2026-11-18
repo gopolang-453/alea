@@ -12,6 +12,7 @@ import re
 import numpy as np
 
 import alea_predictor_v2_4_1 as dc
+from ..stage1.data_store import canonical_team
 
 
 def _aware(value: datetime, label: str) -> datetime:
@@ -38,8 +39,11 @@ def build_prediction(
         raise ValueError("fixture_date must be a date")
     if not isinstance(data_snapshot_sha256, str) or not re.fullmatch(r"[0-9a-fA-F]{64}", data_snapshot_sha256):
         raise ValueError("a full 64-character SHA-256 data fingerprint is required")
-    known_teams = set(params.get("teams", []))
-    unknown = [team for team in (home, away) if team not in known_teams]
+    home_id, away_id = canonical_team(home), canonical_team(away)
+    if home_id == away_id:
+        raise ValueError("home and away teams must be different")
+    known_teams = {canonical_team(team) for team in params.get("teams", [])}
+    unknown = [team for team in (home_id, away_id) if team not in known_teams]
     if unknown and not allow_new_teams:
         raise ValueError(f"unknown team(s) {unknown}; explicitly allow new-team priors only for genuine new teams")
     if not params.get("model_version"):
@@ -63,7 +67,7 @@ def build_prediction(
     if date.fromisoformat(str(training_cutoff)[:10]) >= fixture_date:
         raise ValueError("model training cutoff must precede fixture date")
 
-    raw = dc.predict(params, home, away, allow_new_teams=allow_new_teams)
+    raw = dc.predict(params, home_id, away_id, allow_new_teams=allow_new_teams)
     markets = raw["markets"]
     p = [float(markets["home"]), float(markets["draw"]), float(markets["away"])]
     if not np.all(np.isfinite(p)) or min(p) < 0 or not np.isclose(sum(p), 1.0, atol=1e-8):
