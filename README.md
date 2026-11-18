@@ -81,12 +81,14 @@ are not committed to Git.
 
 ```bash
 python scripts/fetch_openfootball.py
-python scripts/run_stage9_mle_backtest.py --holdout-season 2023-24
+python scripts/run_stage9_mle_backtest.py --holdout-season 2023-24 --step-days 56
 ```
 
 The walk-forward runner uses the production v2.4.1 Dixon–Coles MLE, keeps
-calendar dates together, uses expanding training windows, and reports a
-separate final-season holdout. It does not tune hyperparameters on the holdout.
+calendar dates together, filters training results by their actual availability
+timestamp, uses expanding training windows, fits temperature calibration on
+development predictions only, and reports a separate final-season holdout with
+paired ISO-week bootstrap uncertainty. It does not tune hyperparameters on the holdout.
 A failed fit aborts the run; it is not silently skipped.
 
 **Important:** passing unit tests does not mean ALEA 3.0 is released. Do not
