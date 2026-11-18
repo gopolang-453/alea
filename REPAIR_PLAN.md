@@ -26,6 +26,8 @@ The current default-branch tree does not match its status reports:
 - Stage 2's matrix aggregation functions normalise the finite score grid. This discards the meaning of the reported tail and can bias 1X2/BTTS/totals when the grid is truncated.
 - Stage 5's `player_impact_stub()` contains hand-authored positional weights. It is a placeholder, not a measured player impact model, and must not silently affect production probabilities.
 - Stage 7 is probability-metric/ensemble scaffolding; it does not train an ML model.
+- The current tree has no `stages/stage3`, `stages/stage8`, `stages/stage10`, `stages/stage11` or `stages/stage12` implementation directories. Stage 3/8/10/11/12 claims in the status reports therefore cannot be verified as those stage modules in this checkout.
+- Stage 9 contains a test file but no committed backtest harness module or real-data result artifact.
 - The repository has no connected production pipeline joining ingestion, features, fitting, walk-forward evaluation, prediction persistence, and scheduled refresh.
 
 These findings mean previous Stage 9 PASS claims are not independently reproducible from the current committed tree. Re-run them after the missing implementation and artifacts are restored.
