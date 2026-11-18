@@ -12,7 +12,7 @@ from __future__ import annotations
 from typing import Tuple
 
 import numpy as np
-from scipy.stats import poisson
+from scipy.stats import poisson, skellam
 
 
 def dixon_coles_tau(h: int, a: int, lam: float, mu: float, rho: float) -> float:
@@ -31,6 +31,78 @@ def dixon_coles_tau(h: int, a: int, lam: float, mu: float, rho: float) -> float:
     return 1.0
 
 
+def _validate_parameters(lam: float, mu: float, rho: float, max_goals: int = 15) -> None:
+    if not (np.isfinite(lam) and np.isfinite(mu) and np.isfinite(rho)):
+        raise ValueError("lambda, mu and rho must be finite")
+    if lam <= 0 or mu <= 0:
+        raise ValueError("expected goals must be positive")
+    if not isinstance(max_goals, int) or isinstance(max_goals, bool) or max_goals < 1:
+        raise ValueError("max_goals must be an integer >= 1")
+    if abs(rho) > 0.3:
+        raise ValueError("rho outside safe range")
+    factors = (1 - lam * mu * rho, 1 + lam * rho, 1 + mu * rho, 1 - rho)
+    if min(factors) <= 0:
+        raise ValueError("Dixon-Coles correction factor is non-positive for this pairing")
+
+
+def dixon_coles_corrections(lam: float, mu: float, rho: float) -> Tuple[float, float, float, float]:
+    """Additive changes to the independent-Poisson cells (00, 01, 10, 11)."""
+    _validate_parameters(lam, mu, rho)
+    f0, f1 = np.exp(-lam), lam * np.exp(-lam)
+    g0, g1 = np.exp(-mu), mu * np.exp(-mu)
+    return (
+        -f0 * g0 * lam * mu * rho,
+        f0 * g1 * lam * rho,
+        f1 * g0 * mu * rho,
+        -f1 * g1 * rho,
+    )
+
+
+def exact_one_x_two(lam: float, mu: float, rho: float = 0.0) -> Tuple[float, float, float]:
+    """Full-distribution home/draw/away probabilities; no score-grid truncation."""
+    _validate_parameters(lam, mu, rho)
+    d00, d01, d10, d11 = dixon_coles_corrections(lam, mu, rho)
+    values = (
+        float(skellam.sf(0, lam, mu) + d10),
+        float(skellam.pmf(0, lam, mu) + d00 + d11),
+        float(skellam.cdf(-1, lam, mu) + d01),
+    )
+    if not np.all(np.isfinite(values)) or min(values) < -1e-12 or max(values) > 1 + 1e-12:
+        raise ValueError("invalid exact 1X2 probabilities")
+    return values
+
+
+def exact_btts(lam: float, mu: float, rho: float = 0.0) -> float:
+    """Full-distribution both-teams-to-score probability."""
+    _validate_parameters(lam, mu, rho)
+    _, _, _, d11 = dixon_coles_corrections(lam, mu, rho)
+    value = float((1 - np.exp(-lam)) * (1 - np.exp(-mu)) + d11)
+    if not np.isfinite(value) or value < -1e-12 or value > 1 + 1e-12:
+        raise ValueError("invalid exact BTTS probability")
+    return value
+
+
+def exact_over_under(lam: float, mu: float, rho: float = 0.0, line: float = 2.5) -> Tuple[float, float]:
+    """Full-distribution over/under probabilities for any finite goal line."""
+    _validate_parameters(lam, mu, rho)
+    if not np.isfinite(line):
+        raise ValueError("goal line must be finite")
+    k = int(np.floor(line))
+    d00, d01, d10, d11 = dixon_coles_corrections(lam, mu, rho)
+    correction = 0.0
+    if k == 0:
+        correction = d00
+    elif k == 1:
+        correction = d00 + d01 + d10
+    elif k >= 2:
+        correction = d00 + d01 + d10 + d11
+    under = float(poisson.cdf(k, lam + mu) + correction) if k >= 0 else 0.0
+    over = 1.0 - under
+    if not np.isfinite(over) or not np.isfinite(under) or min(over, under) < -1e-12:
+        raise ValueError("invalid exact over/under probabilities")
+    return over, under
+
+
 def score_matrix(
     lam: float,
     mu: float,
@@ -44,10 +116,7 @@ def score_matrix(
     The matrix cells are the true Dixon-Coles probabilities.
     They sum to 1 - tail.
     """
-    if lam <= 0 or mu <= 0:
-        raise ValueError("expected goals must be positive")
-    if abs(rho) > 0.3:
-        raise ValueError("rho outside safe range")
+    _validate_parameters(lam, mu, rho, max_goals)
 
     i = np.arange(0, max_goals + 1)
     j = np.arange(0, max_goals + 1)
@@ -73,7 +142,11 @@ def score_matrix(
 
 
 def one_x_two(mat: np.ndarray) -> Tuple[float, float, float]:
-    """Home / draw / away probabilities from a score matrix."""
+    """Grid-conditional 1X2 probabilities.
+
+    This normalises only the supplied finite grid. For the full distribution,
+    use exact_one_x_two(lam, mu, rho) instead.
+    """
     home = np.tril(mat, -1).sum()
     draw = np.trace(mat)
     away = np.triu(mat, 1).sum()
@@ -84,12 +157,12 @@ def one_x_two(mat: np.ndarray) -> Tuple[float, float, float]:
 
 
 def btts(mat: np.ndarray) -> float:
-    """Both teams to score probability (at least one goal each)."""
+    """Grid-conditional BTTS probability. Use exact_btts for the full distribution."""
     return mat[1:, 1:].sum() / mat.sum()
 
 
 def over_under(mat: np.ndarray, line: float = 2.5) -> Tuple[float, float]:
-    """Over / under a given total-goals line."""
+    """Grid-conditional over/under. Use exact_over_under for the full distribution."""
     total = 0.0
     over = 0.0
     for i in range(mat.shape[0]):
