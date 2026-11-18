@@ -108,3 +108,13 @@ def test_sqlite_store_persists_and_reopens_idempotently(tmp_path):
         assert reopened.fingerprint() == fingerprint
         snapshot = reopened.snapshot(datetime(2024, 8, 21, 12, tzinfo=timezone.utc))
         assert len(snapshot.to_results_frame()) == 3
+
+
+
+def test_explicit_availability_before_match_date_is_rejected():
+    frame = pd.DataFrame(
+        [("2024-08-17", "Arsenal", "Wolves", 2, 0, "2024-08-16T23:00:00Z")],
+        columns=["Date", "HomeTeam", "AwayTeam", "FTHG", "FTAG", "available_at"],
+    )
+    with pytest.raises(DataValidationError, match="before its match date"):
+        ingest_results_frame(DataStore(), frame)
