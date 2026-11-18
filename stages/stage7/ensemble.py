@@ -127,7 +127,10 @@ def ensemble_average(
     for fixture_key in sorted(by_fix):
         model_map = by_fix[fixture_key]
         if set(model_map) != set(models):
-            continue
+            missing = sorted(set(models) - set(model_map))
+            raise ValueError(
+                f"fixture {fixture_key!r} is missing predictions from models: {missing}"
+            )
         outcomes = {record.outcome for record in model_map.values() if record.outcome is not None}
         if len(outcomes) > 1:
             raise ValueError(f"models disagree on actual outcome for fixture {fixture_key!r}")
