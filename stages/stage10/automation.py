@@ -7,6 +7,7 @@ import math
 import os
 import re
 import shutil
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Optional
 
@@ -94,9 +95,7 @@ class ModelRegistry:
             "sha256": sha256_file(destination),
             "metrics": clean_metrics,
             "metadata": metadata or {},
-            "registered_at_utc": __import__("datetime").datetime.now(
-                __import__("datetime").timezone.utc
-            ).isoformat(),
+            "registered_at_utc": datetime.now(timezone.utc).isoformat(),
         }
         data["models"][version] = record
         self._write(data)
@@ -117,6 +116,8 @@ class ModelRegistry:
         min_holdout_samples: int = 100,
         brier_tolerance: float = 0.0,
     ) -> Dict[str, Any]:
+        if min_holdout_samples < 1 or not math.isfinite(brier_tolerance) or brier_tolerance < 0:
+            raise RegistryError("promotion thresholds must be finite and non-negative")
         data = self._read()
         if version not in data["models"]:
             raise RegistryError(f"unknown model version: {version}")
