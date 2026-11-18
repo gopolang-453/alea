@@ -35,7 +35,7 @@ def _validated_arrays(probabilities: Sequence, outcomes: Sequence) -> tuple[np.n
 
 def _log_loss(probs: np.ndarray, actual: np.ndarray) -> float:
     chosen = np.sum(probs * actual, axis=1)
-    return float(-np.mean(np.log(np.clip(chosen, 1e-15, 1.0))))
+    return float(-np.mean(np.log(np.clip(chosen, 1e-15, 1.0)))))
 
 
 def apply_temperature(probabilities: Sequence, temperature: float) -> np.ndarray:
@@ -65,14 +65,19 @@ def fit_temperature(
 ) -> Dict[str, Any]:
     """Fit T on out-of-sample predictions and prove each training cutoff precedes its match."""
     probs, actual = _validated_arrays(probabilities, outcomes)
+    if min_samples < 1:
+        raise ValueError("min_samples must be at least 1")
     if len(probs) < min_samples:
         raise ValueError(f"at least {min_samples} calibration matches are required")
     if len(match_dates) != len(probs) or len(training_cutoffs) != len(probs):
         raise ValueError("match_dates and training_cutoffs must match prediction count")
 
     for index, (match_date, cutoff) in enumerate(zip(match_dates, training_cutoffs)):
-        match_day = np.datetime64(match_date, "D")
-        cutoff_day = np.datetime64(cutoff, "D")
+        try:
+            match_day = date.fromisoformat(str(match_date)[:10])
+            cutoff_day = date.fromisoformat(str(cutoff)[:10])
+        except ValueError as exc:
+            raise ValueError(f"invalid date/cutoff in calibration row {index}") from exc
         if cutoff_day >= match_day:
             raise ValueError(
                 f"calibration prediction {index} is not out-of-sample: cutoff {cutoff} >= match {match_date}"
