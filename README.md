@@ -54,3 +54,43 @@ On 1,140 held-out matches, with training strictly before each match day:
 | Bet365 closing, margin removed | 0.960 | 0.570 | 0.550 |
 
 The development candidate's log-loss gap versus v2.4.1 is one match (Burnley 2–0 Sunderland, 23 August 2025), where v2.4.1 produced a probability of about 10⁻⁷. On the other 1,139 matches the scores are the same. Neither model matches the closing price. The value engine's 2% edge rule lost about 12% per unit on early prices. Do not bet from it.
+
+
+---
+
+## ALEA 3.0 repair track
+
+The active engineering repair plan and acceptance gates are documented in
+[REPAIR_PLAN.md](REPAIR_PLAN.md). Stage 13 remains open until real-data
+walk-forward evidence, integration and release checks pass.
+
+### Development setup
+
+```bash
+python -m pip install -r requirements-dev.txt
+python -m pytest -q
+python scripts/security_check.py
+```
+
+### Historical results and production Dixon–Coles evaluation
+
+The repair track uses OpenFootball's CC0 historical results as an initial
+results-only source. It does not provide historical xG, injuries, lineups or a
+guaranteed live feed. Raw data and the SQLite database are stored locally and
+are not committed to Git.
+
+```bash
+python scripts/fetch_openfootball.py
+python scripts/run_stage9_mle_backtest.py --holdout-season 2023-24 --step-days 56
+```
+
+The walk-forward runner uses the production v2.4.1 Dixon–Coles MLE, keeps
+calendar dates together, filters training results by their actual availability
+timestamp, uses expanding training windows, fits temperature calibration on
+development predictions only, and reports a separate final-season holdout with
+paired ISO-week bootstrap uncertainty. It does not tune hyperparameters on the holdout.
+A failed fit aborts the run; it is not silently skipped.
+
+**Important:** passing unit tests does not mean ALEA 3.0 is released. Do not
+promote a candidate or enable betting automation without the evidence gates in
+the repair plan.

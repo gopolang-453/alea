@@ -1,3 +1,19 @@
 __pycache__/
 *.pyc
 .venv/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Downloaded historical data, local databases and generated evaluation output.
+data/
+results/
+backups/
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+
+# Local model artifacts and temporary files.
+artifacts/
+*.tmp
+*.restore.tmp

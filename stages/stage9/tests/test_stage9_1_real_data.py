@@ -1,40 +1,58 @@
-"""
-Stage 9.1 ingestion smoke test.
-
-This test deliberately uses a small checked-in CSV fixture. It verifies the
-Stage 1 persistence contract, not the separate 1,900-match historical report.
-The full historical experiment requires a separately licensed, manifested data
-bundle and is not claimed as reproducible by this test.
-"""
-
+"""Stage 9.1 offline integration test using the canonical Stage 1 store."""
+import json
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-from stages.stage1.data_store import PersistentDataStore, ingest_csv
+ROOT = Path(__file__).resolve().parents[3]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from scripts.fetch_openfootball import parse_openfootball_file
+from stages.stage1.data_store import PersistentDataStore, ingest_results_frame
 
 
-FIXTURE = Path(__file__).resolve().parents[3] / "tests" / "fixtures" / "epl_sample.csv"
+def test_stage91_openfootball_parse_import_and_safe_availability(tmp_path):
+    source = tmp_path / "one-season.json"
+    source.write_text(json.dumps({
+        "name": "Premier League",
+        "matches": [
+            {
+                "date": "2023-08-11",
+                "team1": "Burnley",
+                "team2": "Manchester United",
+                "round": "Matchday 1",
+                "score": {"ft": [0, 3]},
+            },
+            {
+                "date": "2023-08-12",
+                "team1": "Arsenal",
+                "team2": "Nottingham Forest",
+                "round": "Matchday 1",
+                "score": {},
+            },
+        ],
+    }), encoding="utf-8")
 
+    frame = parse_openfootball_file(source, "2023-24")
+    assert len(frame) == 1
+    assert frame.iloc[0]["Season"] == "2023-24"
 
-def test_stage91_csv_import_is_persistent_and_idempotent(tmp_path):
-    database = tmp_path / "stage9.sqlite"
-    with PersistentDataStore(database) as store:
-        first = ingest_csv(store, FIXTURE)
-        assert first == 3
-        snapshot = store.snapshot(datetime(2024, 8, 21, 12, tzinfo=timezone.utc))
-        frame = snapshot.to_results_frame()
-        assert len(frame) == 3
-        assert (frame["FTHG"] >= 0).all()
-        assert (frame["FTAG"] >= 0).all()
-        assert frame["HomeTeam"].notna().all()
-        assert frame["AwayTeam"].notna().all()
-
-        fingerprint = store.fingerprint()
-        assert ingest_csv(store, FIXTURE) == 0
-        assert len(store.all_records()) == 3
-
-    with PersistentDataStore(database) as reopened:
-        assert reopened.fingerprint() == fingerprint
-        assert len(reopened.snapshot(
-            datetime(2024, 8, 21, 12, tzinfo=timezone.utc)
-        ).to_results_frame()) == 3
+    with PersistentDataStore(tmp_path / "stage9.sqlite") as store:
+        assert ingest_results_frame(
+            store, frame, source="openfootball-test", available_offset_hours=36.0
+        ) == 1
+        assert ingest_results_frame(
+            store, frame, source="openfootball-test", available_offset_hours=36.0
+        ) == 0
+        assert len(store.all_records()) == 1
+        assert len(store.snapshot(
+            datetime(2023, 8, 11, 23, 59, tzinfo=timezone.utc)
+        ).to_results_frame()) == 0
+        snapshot = store.snapshot(
+            datetime(2023, 8, 12, 12, 0, tzinfo=timezone.utc)
+        ).to_results_frame()
+        assert len(snapshot) == 1
+        assert snapshot.iloc[0]["Season"] == "2023-24"
+        assert int(snapshot.iloc[0]["FTHG"]) == 0
+        assert int(snapshot.iloc[0]["FTAG"]) == 3
