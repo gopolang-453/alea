@@ -35,7 +35,7 @@ def _validated_arrays(probabilities: Sequence, outcomes: Sequence) -> tuple[np.n
 
 def _log_loss(probs: np.ndarray, actual: np.ndarray) -> float:
     chosen = np.sum(probs * actual, axis=1)
-    return float(-np.mean(np.log(np.clip(chosen, 1e-15, 1.0)))))
+    return float(-np.mean(np.log(np.clip(chosen, 1e-15, 1.0))))
 
 
 def apply_temperature(probabilities: Sequence, temperature: float) -> np.ndarray:
