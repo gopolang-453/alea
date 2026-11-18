@@ -28,6 +28,14 @@ import alea_predictor_v2_4_1 as dc
 from stages.stage1.persistent_store import PersistentDataStore
 
 
+def _ensure_datetime(df: pd.DataFrame) -> pd.DataFrame:
+    """Return a copy with Date coerced to datetime64. Safe for object or already-datetime columns."""
+    out = df.copy()
+    if "Date" in out.columns:
+        out["Date"] = pd.to_datetime(out["Date"])
+    return out
+
+
 def evaluate_period(
     evaluation: pd.DataFrame,
     seed_training: pd.DataFrame,
@@ -38,8 +46,10 @@ def evaluate_period(
     xi: float,
     reg: float,
 ) -> tuple[dict, list[dict]]:
-    evaluation = evaluation.sort_values("Date").reset_index(drop=True).copy()
-    seed_training = seed_training.sort_values("Date").reset_index(drop=True).copy()
+    evaluation = _ensure_datetime(evaluation).sort_values("Date").reset_index(drop=True)
+    seed_training = _ensure_datetime(seed_training)
+    if not seed_training.empty:
+        seed_training = seed_training.sort_values("Date").reset_index(drop=True)
     if evaluation.empty:
         raise ValueError(f"{label}: no evaluation matches")
     if step_days < 1:
@@ -188,8 +198,7 @@ def main() -> int:
 
     if data.empty or "Season" not in data.columns:
         raise SystemExit("No imported results found. Run scripts/fetch_openfootball.py first.")
-    data["Date"] = pd.to_datetime(data["Date"])
-    data = data.sort_values("Date").reset_index(drop=True)
+    data = _ensure_datetime(data).sort_values("Date").reset_index(drop=True)
     holdout = data[data["Season"] == args.holdout_season].copy()
     if holdout.empty:
         raise SystemExit(f"Holdout season {args.holdout_season!r} is not in the database.")
