@@ -20,11 +20,18 @@ on:
       - "stages/**"
       - "tests/**"
       - "requirements.txt"
+      - "requirements-dev.txt"
+      - "pytest.ini"
+      - "scripts/**"
       - ".github/workflows/stage1-regression.yml"
   workflow_dispatch:
 
 permissions:
   contents: read
+
+concurrency:
+  group: alea-tests-${{ github.ref }}
+  cancel-in-progress: true
 
 concurrency:
   group: alea-tests-${{ github.ref }}
