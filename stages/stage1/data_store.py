@@ -105,6 +105,7 @@ class Snapshot:
             p = r.payload
             rows.append({
                 "Date": p["date"],
+                "Season": p.get("season"),
                 "HomeTeam": p["home"],
                 "AwayTeam": p["away"],
                 "FTHG": p["fthg"],
@@ -113,10 +114,10 @@ class Snapshot:
                 "source": r.source,
             })
         if not rows:
-            return pd.DataFrame(columns=["Date", "HomeTeam", "AwayTeam", "FTHG", "FTAG"])
+            return pd.DataFrame(columns=["Date", "Season", "HomeTeam", "AwayTeam", "FTHG", "FTAG"])
         df = pd.DataFrame(rows)
         df["Date"] = pd.to_datetime(df["Date"])
-        return df.sort_values("Date").reset_index(drop=True)
+        return df.sort_values(["Date", "HomeTeam", "AwayTeam"]).reset_index(drop=True)
 
 
 class DataStore:
@@ -129,7 +130,7 @@ class DataStore:
         self._record_index: Dict[tuple, Record] = {}
 
     def add(self, record: Record) -> bool:
-        if record.available_at.tzinfo is None:
+        if record.available_at.tzinfo is None or record.available_at.utcoffset() is None:
             raise ValueError("available_at must be timezone-aware")
         if not record.kind or not record.fixture_key or not record.source:
             raise ValueError("kind, fixture_key, and source are required")
@@ -149,7 +150,7 @@ class DataStore:
         return True
 
     def snapshot(self, as_of: datetime) -> Snapshot:
-        if as_of.tzinfo is None:
+        if as_of.tzinfo is None or as_of.utcoffset() is None:
             raise ValueError("as_of must be timezone-aware")
         visible = [r for r in self._records if r.available_at <= as_of]
         return Snapshot(as_of=as_of, records=visible)
@@ -173,6 +174,8 @@ class PersistentDataStore(DataStore):
     def __init__(self, database_path: str | Path) -> None:
         super().__init__()
         self.database_path = str(database_path)
+        if self.database_path != ":memory:":
+            Path(self.database_path).parent.mkdir(parents=True, exist_ok=True)
         self._conn = sqlite3.connect(self.database_path)
         self._conn.execute(
             """
@@ -358,8 +361,8 @@ def ingest_results_frame(
     Returns the number of newly added records.
     """
     require_columns(df, ["Date", "HomeTeam", "AwayTeam", "FTHG", "FTAG"])
-    if available_offset_hours < 0:
-        raise ValueError("available_offset_hours must be non-negative")
+    if not isinstance(available_offset_hours, (int, float)) or available_offset_hours < 24:
+        raise DataValidationError("date-only availability offset must be at least 24 hours")
     n = 0
     for _, row in df.iterrows():
         date = pd.Timestamp(row["Date"])
@@ -378,17 +381,30 @@ def ingest_results_frame(
             available = (day_start + pd.Timedelta(hours=available_offset_hours)).to_pydatetime()
         if available.date() < match_day:
             raise DataValidationError("result cannot be available before its match date")
-        home = canonical_team(str(row["HomeTeam"]))
-        away = canonical_team(str(row["AwayTeam"]))
+        if pd.isna(row["HomeTeam"]) or pd.isna(row["AwayTeam"]):
+            raise DataValidationError("team names must not be missing")
+        home = canonical_team(row["HomeTeam"])
+        away = canonical_team(row["AwayTeam"])
         if home == away:
             raise DataValidationError("a team cannot play itself")
-        try:
-            fthg = int(row["FTHG"])
-            ftag = int(row["FTAG"])
-        except (TypeError, ValueError, OverflowError) as exc:
-            raise DataValidationError("full-time goals must be non-negative integers") from exc
-        if fthg < 0 or ftag < 0 or fthg != row["FTHG"] or ftag != row["FTAG"]:
-            raise DataValidationError("full-time goals must be non-negative integers")
+        goals = []
+        for column in ("FTHG", "FTAG"):
+            value = row[column]
+            if isinstance(value, bool):
+                raise DataValidationError("full-time goals must be non-negative integers")
+            try:
+                numeric = float(value)
+            except (TypeError, ValueError, OverflowError) as exc:
+                raise DataValidationError("full-time goals must be non-negative integers") from exc
+            if not pd.notna(numeric) or not numeric.is_integer() or numeric < 0 or numeric > 30:
+                raise DataValidationError("full-time goals must be non-negative integers")
+            goals.append(int(numeric))
+        fthg, ftag = goals
+        season = None
+        if "Season" in df.columns and pd.notna(row.get("Season")):
+            season = str(row["Season"]).strip()
+            if not season:
+                raise DataValidationError("season must not be an empty string")
         key = f"{match_day.isoformat()}|{home}|{away}"
         rec = Record(
             kind="result",
@@ -400,6 +416,7 @@ def ingest_results_frame(
                 "away": away,
                 "fthg": fthg,
                 "ftag": ftag,
+                **({"season": season} if season is not None else {}),
             },
             source=source,
         )
