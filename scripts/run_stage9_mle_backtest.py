@@ -275,7 +275,7 @@ def evaluate_period(
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--database", default="data/alea.sqlite")
+    parser.add_argument("--database", default="data/alea_openfootball.sqlite")
     parser.add_argument("--holdout-season", default="2023-24")
     parser.add_argument("--min-train-matches", type=int, default=380)
     parser.add_argument("--step-days", type=int, default=56)
