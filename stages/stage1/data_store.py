@@ -57,7 +57,13 @@ def canonical_team(name: str) -> str:
     """Return a stable lowercase identifier for a team name."""
     if not isinstance(name, str) or not name.strip():
         raise ValueError(f"unreadable team name: {name!r}")
-    key = " ".join(name.lower().strip().replace(".", "").split())
+    key = " ".join(name.lower().strip().replace(".", "").replace("&", "and").split())
+    parts = key.split()
+    if parts and parts[-1] == "fc":
+        parts.pop()
+    if parts and parts[0] == "afc":
+        parts.pop(0)
+    key = " ".join(parts)
     return _ALIASES.get(key, key)
 
 
