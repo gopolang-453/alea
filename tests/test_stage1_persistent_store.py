@@ -139,3 +139,20 @@ def test_malformed_score_container_is_rejected(tmp_path):
     with PersistentDataStore(tmp_path / "bad-score.sqlite") as store:
         with pytest.raises(DataValidationError, match="score object"):
             store.ingest_openfootball_file(source, season="2023-24")
+
+
+
+def test_openfootball_season_import_rolls_back_on_bad_row(tmp_path):
+    source = tmp_path / "partial-season.json"
+    source.write_text(json.dumps({
+        "matches": [
+            {"date": "2023-08-11", "team1": "Burnley", "team2": "Manchester United",
+             "score": {"ft": [0, 3]}},
+            {"date": None, "team1": "Arsenal", "team2": "Chelsea",
+             "score": {"ft": [1, 0]}},
+        ],
+    }), encoding="utf-8")
+    with PersistentDataStore(tmp_path / "atomic.sqlite") as store:
+        with pytest.raises(DataValidationError):
+            store.ingest_openfootball_file(source, season="2023-24")
+        assert store.all_records() == []
