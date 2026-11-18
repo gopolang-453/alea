@@ -129,3 +129,19 @@ Stage 13 is the acceptance gate, not a feature stage. It stays open because:
 The mathematical foundation (Stage 2), data contracts (Stage 1), and Stage 9 core backtest on 1,900 real Premier League matches are in place and tested. Elo and form show directional improvement. Everything else required for final acceptance (additional feature evidence, live automation, deployed product) remains open.
 
 A checklist tick is not proof. Stage 13 stays open until the evidence gaps above are closed.
+
+
+---
+
+## Repository reproducibility update — 18 November 2026
+
+A later repository audit found that the 1,900-match historical run described below is **not reproducible from the committed checkout**: the referenced five-season CSV files and the persistent-store module originally imported by the Stage 9.1 test were absent. The earlier metrics should therefore be treated as reported experiment results, not independently verified release evidence.
+
+The repository now includes:
+- SQLite-backed `PersistentDataStore` and validated `ingest_csv` in `stages/stage1/data_store.py`.
+- Idempotent duplicate handling and rejection of conflicting source records.
+- A conservative date-only availability fallback (36 hours after midnight UTC on the match date); this is a safety delay, not the provider's exact publication timestamp.
+- Stage 1 regression tests and a Stage 9.1 CSV-ingestion smoke test using a small synthetic fixture.
+- GitHub Actions run [44297685638](https://github.com/gopolang-453/alea/actions/runs/44297685638), which passed **8 tests** on commit `01b8a5d8890ff0cb66b3ec1998b898d105a25559`.
+
+This smoke test does **not** reproduce the 1,900-match dataset or the 1,600-prediction backtest. The production Dixon–Coles MLE walk-forward and Stage 9.5 combined-model evaluation remain open. Stage 13 remains NOT COMPLETE.
