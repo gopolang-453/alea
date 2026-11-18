@@ -1,6 +1,6 @@
 # ALEA 3.0 — End-to-end repair plan
 
-**Working branch:** `repair/alea-3.0-end-to-end`  
+**Working branch:** `repair/alea-3.0-integrated`  
 **Baseline commit:** `18e2e94c0fdfe1a43376e36e31c6f7c1db85d73d` (latest main when integrated branch was created)  
 **Status:** Audit and repair plan only. No acceptance stage is passed by this document.
 
