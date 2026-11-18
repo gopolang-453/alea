@@ -1,0 +1,52 @@
+name: Stage 9 production MLE historical backtest
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["repair/**"]
+    paths:
+      - "scripts/fetch_openfootball.py"
+      - "scripts/run_stage9_mle_backtest.py"
+      - "stages/stage1/data_store.py"
+      - "alea_predictor_v2_4_1.py"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: stage9-mle-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  historical-backtest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+      - name: Install dependencies
+        run: python -m pip install --upgrade pip && pip install -r requirements-dev.txt
+      - name: Fetch and import five historical Premier League seasons
+        run: >-
+          python scripts/fetch_openfootball.py
+          --seasons 2019-20 2020-21 2021-22 2022-23 2023-24
+      - name: Run production Dixon-Coles MLE walk-forward and untouched holdout
+        run: >-
+          python scripts/run_stage9_mle_backtest.py
+          --holdout-season 2023-24
+          --min-train-matches 380
+          --step-days 56
+          --output-dir results/stage9_mle
+      - name: Upload evaluation report, predictions and source manifests
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: alea-stage9-mle-${{ github.run_id }}
+          path: |
+            results/stage9_mle/
+            data/raw/openfootball/*.manifest.json
+          if-no-files-found: warn
+          retention-days: 30
