@@ -149,6 +149,17 @@ class ModelRegistry:
             raise RegistryError("candidate must be compared against the current champion")
         if not self.verify(baseline_version):
             raise RegistryError("comparison baseline artifact failed SHA-256 verification")
+        baseline_metrics = data["models"][baseline_version]["metrics"]
+        if "holdout_log_loss" not in baseline_metrics or "holdout_brier" not in baseline_metrics:
+            raise RegistryError("registered comparison baseline lacks holdout metrics")
+        if not math.isclose(
+            metrics["baseline_holdout_log_loss"], baseline_metrics["holdout_log_loss"],
+            rel_tol=0.0, abs_tol=1e-8,
+        ) or not math.isclose(
+            metrics["baseline_holdout_brier"], baseline_metrics["holdout_brier"],
+            rel_tol=0.0, abs_tol=1e-8,
+        ):
+            raise RegistryError("candidate baseline metrics do not match registered baseline record")
         old_champion = data.get("champion")
         data["previous_champion"] = old_champion
         data["champion"] = version
