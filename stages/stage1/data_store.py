@@ -143,6 +143,7 @@ class DataStore:
                 f"conflicting duplicate record: {record.kind} {record.fixture_key} from {record.source}"
             )
         self._records.append(record)
+        return True
 
     def snapshot(self, as_of: datetime) -> Snapshot:
         if as_of.tzinfo is None:
