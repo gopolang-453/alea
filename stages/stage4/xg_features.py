@@ -13,7 +13,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Dict, List, Optional, Sequence
 
-from data_store import DataStore, Record, canonical_team
+from ..stage1.data_store import DataStore, Record, canonical_team
 
 
 def _ensure_aware(dt: datetime) -> datetime:
