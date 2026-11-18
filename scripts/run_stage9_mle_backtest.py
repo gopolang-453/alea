@@ -318,6 +318,61 @@ def main() -> int:
         step_days=args.step_days, xi=args.xi, reg=args.reg,
     )
 
+    # Fit calibration only on development-period out-of-sample predictions.
+    development_probs = _probability_matrix(
+        development_rows, ("p_home", "p_draw", "p_away")
+    )
+    development_outcomes = np.eye(3)[_outcome_indices(development_rows)]
+    calibration = fit_temperature(
+        development_probs,
+        development_outcomes,
+        [row["date"] for row in development_rows],
+        [row["training_data_through"] for row in development_rows],
+        min_samples=50,
+    )
+
+    holdout_probs = _probability_matrix(holdout_rows, ("p_home", "p_draw", "p_away"))
+    calibrated_holdout_probs = apply_temperature(
+        holdout_probs, calibration["temperature"]
+    )
+    for row, calibrated in zip(holdout_rows, calibrated_holdout_probs):
+        row["p_home_calibrated"] = float(calibrated[0])
+        row["p_draw_calibrated"] = float(calibrated[1])
+        row["p_away_calibrated"] = float(calibrated[2])
+
+    calibrated_metrics = metrics_for_rows(
+        holdout_rows, ("p_home_calibrated", "p_draw_calibrated", "p_away_calibrated")
+    )
+    calibrated_comparison = paired_week_bootstrap(
+        holdout_rows,
+        candidate_fields=("p_home_calibrated", "p_draw_calibrated", "p_away_calibrated"),
+    )
+    selected_fields = (
+        ("p_home_calibrated", "p_draw_calibrated", "p_away_calibrated")
+        if calibration["should_apply"]
+        else ("p_home", "p_draw", "p_away")
+    )
+    selected_metrics = calibrated_metrics if calibration["should_apply"] else holdout_report["model"]
+    selected_comparison = calibrated_comparison if calibration["should_apply"] else holdout_report["model_vs_training_rate"]
+    selected_model_name = (
+        "production_mle_temperature_scaled"
+        if calibration["should_apply"] else "production_mle_raw"
+    )
+    holdout_report["calibrated_model"] = calibrated_metrics
+    holdout_report["calibrated_vs_training_rate"] = calibrated_comparison
+    holdout_report["selected_model"] = selected_model_name
+    holdout_report["selected_metrics"] = selected_metrics
+
+    registry_metrics = {
+        "n_holdout": holdout_report["n_predictions"],
+        "holdout_log_loss": selected_metrics["log_loss"],
+        "baseline_holdout_log_loss": holdout_report["training_rate_baseline"]["log_loss"],
+        "log_loss_diff_ci_upper": selected_comparison["log_loss_difference_ci95_upper"],
+        "holdout_brier": selected_metrics["brier"],
+        "baseline_holdout_brier": holdout_report["training_rate_baseline"]["brier"],
+        "brier_diff_ci_upper": selected_comparison["brier_difference_ci95_upper"],
+    }
+
     output = Path(args.output_dir)
     output.mkdir(parents=True, exist_ok=True)
     predictions = development_rows + holdout_rows
@@ -338,12 +393,17 @@ def main() -> int:
             "unknown_team_policy": "league-average prior, flagged in prediction rows",
         },
         "development": development_report,
+        "calibration": calibration,
         "final_holdout": holdout_report,
+        "registry_metrics_vs_training_rate_benchmark": registry_metrics,
     }
     (output / "report.json").write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
     print(json.dumps({
         "development": development_report["model"],
         "final_holdout": holdout_report["model"],
+        "selected_holdout_model": selected_model_name,
+        "selected_holdout_metrics": selected_metrics,
+        "calibration": calibration,
         "output": str(output),
     }, indent=2))
     return 0
