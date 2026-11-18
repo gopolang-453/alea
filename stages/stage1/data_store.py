@@ -18,8 +18,10 @@ from __future__ import annotations
 
 import hashlib
 import json
+import sqlite3
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence
 
 import pandas as pd
@@ -163,6 +165,110 @@ class DataStore:
             default=str,
         )
         return hashlib.sha256(payload.encode()).hexdigest()
+
+
+class PersistentDataStore(DataStore):
+    """SQLite-backed append-only store with the same snapshot API as DataStore."""
+
+    def __init__(self, database_path: str | Path) -> None:
+        super().__init__()
+        self.database_path = str(database_path)
+        self._conn = sqlite3.connect(self.database_path)
+        self._conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS records (
+                id INTEGER PRIMARY KEY,
+                kind TEXT NOT NULL,
+                fixture_key TEXT NOT NULL,
+                available_at TEXT NOT NULL,
+                payload_json TEXT NOT NULL,
+                source TEXT NOT NULL,
+                source_id TEXT NOT NULL DEFAULT '',
+                UNIQUE(kind, fixture_key, source, source_id)
+            )
+            """
+        )
+        self._conn.commit()
+        rows = self._conn.execute(
+            "SELECT kind, fixture_key, available_at, payload_json, source, source_id FROM records"
+        ).fetchall()
+        for kind, fixture_key, available_at, payload_json, source, source_id in rows:
+            super().add(
+                Record(
+                    kind=kind,
+                    fixture_key=fixture_key,
+                    available_at=datetime.fromisoformat(available_at),
+                    payload=json.loads(payload_json),
+                    source=source,
+                    source_id=source_id or None,
+                )
+            )
+
+    def add(self, record: Record) -> bool:
+        added = super().add(record)
+        if not added:
+            return False
+        identity = (record.kind, record.fixture_key, record.source, record.source_id)
+        try:
+            self._conn.execute(
+                """
+                INSERT INTO records
+                    (kind, fixture_key, available_at, payload_json, source, source_id)
+                VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    record.kind,
+                    record.fixture_key,
+                    record.available_at.isoformat(),
+                    json.dumps(record.payload, sort_keys=True, default=str),
+                    record.source,
+                    record.source_id or "",
+                ),
+            )
+            self._conn.commit()
+        except Exception:
+            self._conn.rollback()
+            self._record_index.pop(identity, None)
+            self._records.pop()
+            raise
+        return True
+
+    def close(self) -> None:
+        if getattr(self, "_conn", None) is not None:
+            self._conn.close()
+            self._conn = None
+
+    def __enter__(self) -> "PersistentDataStore":
+        return self
+
+    def __exit__(self, exc_type, exc, traceback) -> None:
+        self.close()
+
+
+def ingest_csv(
+    store: DataStore,
+    csv_path: str | Path,
+    source: str = "football-data",
+    available_offset_hours: float = 36.0,
+) -> int:
+    """Read a football-data-style CSV and ingest validated full-time results."""
+    path = Path(csv_path)
+    if not path.is_file():
+        raise FileNotFoundError(path)
+    frame = pd.read_csv(path, encoding="utf-8-sig")
+    require_columns(frame, ["Date", "HomeTeam", "AwayTeam", "FTHG", "FTAG"])
+    parsed_dates = pd.to_datetime(frame["Date"], dayfirst=True, errors="coerce")
+    if parsed_dates.isna().any():
+        bad_rows = frame.index[parsed_dates.isna()].tolist()
+        raise DataValidationError(f"unreadable match dates at CSV rows: {bad_rows[:10]}")
+    frame = frame.copy()
+    frame["Date"] = parsed_dates
+    return ingest_results_frame(
+        store,
+        frame,
+        source=source,
+        available_offset_hours=available_offset_hours,
+    )
 
 
 # ---------------------------------------------------------------------------
