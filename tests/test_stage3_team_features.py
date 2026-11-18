@@ -43,7 +43,7 @@ def test_features_exclude_same_day_and_not_yet_available_results():
     )
     # The 10 January result is not yet available at noon and is also on fixture date.
     assert features["home_form"]["matches"] == 1
-    assert features["away_form"] is None
+    assert features["away_form"]["matches"] == 2
     assert features["head_to_head"]["matches"] == 1
 
 
