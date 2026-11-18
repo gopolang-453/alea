@@ -107,7 +107,7 @@ def test_prediction_service_canonicalises_team_variants(monkeypatch):
         params(), "Arsenal FC", "Chelsea FC", date(2024, 2, 1),
         datetime(2024, 1, 31, 12, tzinfo=timezone.utc), "e" * 64,
     )
-    assert seen["teams"] == ("arsenal", "chelsea")
+    assert seen["teams"] == ("Arsenal", "Chelsea")
 
 
 def test_prediction_service_rejects_same_canonical_team_twice(monkeypatch):
