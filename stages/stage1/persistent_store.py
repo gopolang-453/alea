@@ -57,8 +57,13 @@ def conservative_result_availability(match_date: date) -> datetime:
 
 
 def _parse_date(value: Any) -> date:
+    if value is None or (isinstance(value, str) and not value.strip()):
+        raise DataValidationError("match date is missing")
     try:
-        return pd.Timestamp(value).date()
+        parsed = pd.Timestamp(value)
+        if pd.isna(parsed):
+            raise ValueError("date parsed as NaT")
+        return parsed.date()
     except Exception as exc:
         raise DataValidationError(f"invalid match date: {value!r}") from exc
 
