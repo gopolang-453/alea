@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import os
 import re
 import shutil
@@ -87,10 +88,13 @@ def data_freshness(
     if latest_available_at is None:
         return {"status": "missing", "age_hours": None}
     current = now or datetime.now(timezone.utc)
-    if latest_available_at.tzinfo is None or current.tzinfo is None:
+    if (
+        latest_available_at.tzinfo is None or latest_available_at.utcoffset() is None
+        or current.tzinfo is None or current.utcoffset() is None
+    ):
         raise ReliabilityError("freshness timestamps must be timezone-aware")
-    if max_age_hours <= 0:
-        raise ReliabilityError("max_age_hours must be positive")
+    if not math.isfinite(max_age_hours) or max_age_hours <= 0:
+        raise ReliabilityError("max_age_hours must be finite and positive")
     age = (current - latest_available_at).total_seconds() / 3600.0
     if age < 0:
         raise ReliabilityError("latest data availability timestamp is in the future")
