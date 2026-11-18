@@ -1,6 +1,6 @@
 # ALEA 3.0 Development Report
 **Date:** 18 November 2026  
-**Scope:** Stages 0–5  
+**Scope:** Stages 0–7  
 **Rule:** No stage marked complete without green tests.
 
 ## Summary
@@ -13,19 +13,23 @@
 | 3 | Team strength, form and ratings | Feature layer complete | 8 passed |
 | 4 | Expected goals (xG) | Feature layer complete | 5 passed |
 | 5 | Player intelligence, injuries, suspensions | Feature layer complete | 6 passed |
-| 6–13 | Context, ML, calibration, backtesting, automation, UI, release | Not started | Require real data + comparative evaluation |
+| 6 | Advanced contextual factors | Feature contracts complete | 4 passed |
+| 7 | Machine learning and ensemble | Contracts complete | 7 passed |
+| 8–13 | Calibration, backtesting, automation, UI, reliability, release | Not started | Require real data + comparative evaluation |
 
 ## What is proven
-- Timestamp-aware data store (in-memory + SQLite) with snapshots that hide future information
-- Dixon-Coles scoreline matrix, 1X2, BTTS, totals (probabilities sum correctly, rho=0 recovers Poisson)
+- Timestamp-aware data store with snapshots
+- Dixon-Coles mathematics (scoreline matrix, 1X2, BTTS, totals)
 - Leakage-safe Elo, form, H2H, rest
-- Leakage-safe xG rolling features and overperformance
-- Leakage-safe injuries, suspensions, confirmed lineups, position-aware impact stub
+- Leakage-safe xG features
+- Leakage-safe injuries, suspensions, lineups, impact stub
+- Contextual feature contracts (weather, referee, manager, travel, derby)
+- Ensemble scaffolding (log loss, Brier, weighted average, best-model selection)
 
 ## What is not yet claimed
-Comparative walk-forward evidence that any of the Stage 3–5 features improve predictions over the Dixon-Coles baseline. That requires a real historical dataset wired through the Stage 1 store.
+Comparative walk-forward evidence that any Stage 3–7 component improves predictions over the Dixon-Coles baseline. Training of actual ML models is also not done.
 
 ## Next step
-Connect a free results (+ optional xG) source and run leakage-safe comparative backtests. Retain only features that show improvement.
+Wire a real historical results source through the Stage 1 store and run leakage-safe comparative backtests. Retain only what improves the baseline.
 
-**Bottom line:** Stages 1–5 feature contracts are implemented and unit-tested. Code is on GitHub under `stages/`. No untested code was marked done.
+**Bottom line:** Stages 1–7 contracts are implemented and unit-tested. Code is on GitHub under `stages/`. No untested code was marked done.
