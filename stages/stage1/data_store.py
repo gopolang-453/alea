@@ -255,8 +255,21 @@ def ingest_results_frame(
             date = date.tz_localize(None)
         # Date-only historical feeds do not identify the actual final whistle.
         available = (date.normalize().tz_localize("UTC") + pd.Timedelta(hours=available_offset_hours)).to_pydatetime()
+        if pd.isna(row["HomeTeam"]) or pd.isna(row["AwayTeam"]):
+            raise DataValidationError("missing team name in results frame")
         home = canonical_team(str(row["HomeTeam"]))
         away = canonical_team(str(row["AwayTeam"]))
+        if home == away:
+            raise DataValidationError("a team cannot play itself")
+        goals = []
+        for col in ("FTHG", "FTAG"):
+            try:
+                value = float(row[col])
+            except (TypeError, ValueError) as exc:
+                raise DataValidationError(f"invalid {col} value: {row[col]!r}") from exc
+            if not pd.notna(value) or not value.is_integer() or value < 0 or value > 30:
+                raise DataValidationError(f"invalid {col} value: {row[col]!r}")
+            goals.append(int(value))
         key = f"{date.date().isoformat()}|{home}|{away}"
         rec = Record(
             kind="result",
@@ -266,8 +279,8 @@ def ingest_results_frame(
                 "date": date.date().isoformat(),
                 "home": home,
                 "away": away,
-                "fthg": int(row["FTHG"]),
-                "ftag": int(row["FTAG"]),
+                "fthg": goals[0],
+                "ftag": goals[1],
             },
             source=source,
         )
