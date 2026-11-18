@@ -100,3 +100,42 @@ def test_openfootball_import_skips_unplayed_fixtures_and_is_idempotent(tmp_path)
         assert store.ingest_openfootball_file(source, season="2023-24") == 1
         assert store.ingest_openfootball_file(source, season="2023-24") == 0
         assert len(store.all_records()) == 1
+
+
+
+def test_explicit_availability_cannot_precede_match_date(tmp_path):
+    with PersistentDataStore(tmp_path / "early.sqlite") as store:
+        with pytest.raises(DataValidationError, match="before its match date"):
+            store.add_result(
+                competition="Premier League", season="2023-24",
+                match_date=date(2023, 8, 11), home="Burnley", away="Man Utd",
+                home_goals=0, away_goals=3, source="unit-test",
+                available_at=datetime(2023, 8, 10, 23, 0, tzinfo=timezone.utc),
+            )
+
+
+@pytest.mark.parametrize("match_date", [None, "", "not-a-date"])
+def test_openfootball_missing_or_invalid_date_is_rejected(tmp_path, match_date):
+    source = tmp_path / "bad-date.json"
+    source.write_text(json.dumps({
+        "matches": [{
+            "date": match_date, "team1": "Burnley", "team2": "Manchester United",
+            "score": {"ft": [0, 3]},
+        }],
+    }), encoding="utf-8")
+    with PersistentDataStore(tmp_path / "bad-date.sqlite") as store:
+        with pytest.raises(DataValidationError, match="match date"):
+            store.ingest_openfootball_file(source, season="2023-24")
+
+
+def test_malformed_score_container_is_rejected(tmp_path):
+    source = tmp_path / "bad-score.json"
+    source.write_text(json.dumps({
+        "matches": [{
+            "date": "2023-08-11", "team1": "Burnley", "team2": "Manchester United",
+            "score": ["0", "3"],
+        }],
+    }), encoding="utf-8")
+    with PersistentDataStore(tmp_path / "bad-score.sqlite") as store:
+        with pytest.raises(DataValidationError, match="score object"):
+            store.ingest_openfootball_file(source, season="2023-24")
