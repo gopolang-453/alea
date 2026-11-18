@@ -71,3 +71,12 @@ def test_invalid_probability_vectors_and_outcomes_are_rejected():
         log_loss([rec("dc", outcome="X")])
     with pytest.raises(ValueError, match="finite"):
         brier_score([rec("dc", probs=(float("nan"), 0.5, 0.5))])
+
+
+
+def test_incomplete_fixture_alignment_is_rejected_not_silently_dropped():
+    with pytest.raises(ValueError, match="missing predictions"):
+        ensemble_average({
+            "dc": [rec("dc", fixture="fixture-1")],
+            "elo": [rec("elo", fixture="fixture-2")],
+        })
