@@ -385,7 +385,10 @@ def ingest_results_frame(
     Returns the number of newly added records.
     """
     require_columns(df, ["Date", "HomeTeam", "AwayTeam", "FTHG", "FTAG"])
-    if not isinstance(available_offset_hours, (int, float)) or available_offset_hours < 24:
+    needs_date_only_fallback = "available_at" not in df.columns or df["available_at"].isna().any()
+    if needs_date_only_fallback and (
+        not isinstance(available_offset_hours, (int, float)) or available_offset_hours < 24
+    ):
         raise DataValidationError("date-only availability offset must be at least 24 hours")
     n = 0
     transaction = store.transaction() if isinstance(store, PersistentDataStore) else nullcontext()
