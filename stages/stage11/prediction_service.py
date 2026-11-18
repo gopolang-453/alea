@@ -42,10 +42,12 @@ def build_prediction(
     home_id, away_id = canonical_team(home), canonical_team(away)
     if home_id == away_id:
         raise ValueError("home and away teams must be different")
-    known_teams = {canonical_team(team) for team in params.get("teams", [])}
-    unknown = [team for team in (home_id, away_id) if team not in known_teams]
+    known_team_lookup = {canonical_team(team): team for team in params.get("teams", [])}
+    unknown = [team for team in (home_id, away_id) if team not in known_team_lookup]
     if unknown and not allow_new_teams:
         raise ValueError(f"unknown team(s) {unknown}; explicitly allow new-team priors only for genuine new teams")
+    home_model_name = known_team_lookup.get(home_id, home_id)
+    away_model_name = known_team_lookup.get(away_id, away_id)
     if not params.get("model_version"):
         raise ValueError("model parameters must include model_version")
 
@@ -67,7 +69,7 @@ def build_prediction(
     if date.fromisoformat(str(training_cutoff)[:10]) >= fixture_date:
         raise ValueError("model training cutoff must precede fixture date")
 
-    raw = dc.predict(params, home_id, away_id, allow_new_teams=allow_new_teams)
+    raw = dc.predict(params, home_model_name, away_model_name, allow_new_teams=allow_new_teams)
     markets = raw["markets"]
     p = [float(markets["home"]), float(markets["draw"]), float(markets["away"])]
     if not np.all(np.isfinite(p)) or min(p) < 0 or not np.isclose(sum(p), 1.0, atol=1e-8):
