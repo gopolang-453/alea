@@ -155,6 +155,21 @@ class PersistentDataStore:
                 content_hash TEXT NOT NULL
             )
         """)
+        # Feature records use a separate table so xG/injury/lineup observations
+        # can coexist with the result for the same fixture.
+        self._conn.execute("""
+            CREATE TABLE IF NOT EXISTS feature_records (
+                record_id TEXT PRIMARY KEY,
+                kind TEXT NOT NULL,
+                fixture_key TEXT NOT NULL,
+                event_date TEXT,
+                available_at TEXT NOT NULL,
+                payload_json TEXT NOT NULL,
+                source TEXT NOT NULL,
+                source_id TEXT,
+                content_hash TEXT NOT NULL
+            )
+        """)
         row = self._conn.execute(
             "SELECT value FROM metadata WHERE key='schema_version'"
         ).fetchone()
@@ -233,6 +248,64 @@ class PersistentDataStore:
             self._conn.commit()
         return True
 
+    def add_feature_record(
+        self,
+        *,
+        kind: str,
+        fixture_key: str,
+        available_at: datetime,
+        payload: Dict[str, Any],
+        source: str,
+        source_id: Optional[str] = None,
+        event_date: Optional[date] = None,
+    ) -> bool:
+        """Persist a timestamped non-result observation such as xG or injury data."""
+        if not isinstance(kind, str) or not kind.strip() or kind.strip().lower() == "result":
+            raise DataValidationError("feature kind must be a non-empty non-result string")
+        if not isinstance(fixture_key, str) or not fixture_key.strip():
+            raise DataValidationError("fixture_key is required")
+        if not isinstance(source, str) or not source.strip():
+            raise DataValidationError("source is required")
+        if not isinstance(payload, dict):
+            raise DataValidationError("feature payload must be a dictionary")
+        availability = _aware_utc(available_at)
+        if event_date is not None and (isinstance(event_date, datetime) or not isinstance(event_date, date)):
+            raise DataValidationError("event_date must be a date without a time component")
+        event_day = event_date.isoformat() if event_date else None
+        normal_kind = kind.strip().lower()
+        identity = {
+            "kind": normal_kind,
+            "fixture_key": fixture_key.strip(),
+            "source": source.strip(),
+            "source_id": source_id,
+        }
+        record_id = hashlib.sha256(
+            json.dumps(identity, sort_keys=True, separators=(",", ":")).encode("utf-8")
+        ).hexdigest()
+        payload_json = json.dumps(payload, sort_keys=True, separators=(",", ":"), allow_nan=False)
+        digest = hashlib.sha256(payload_json.encode("utf-8")).hexdigest()
+        existing = self._conn.execute(
+            "SELECT available_at, payload_json, event_date FROM feature_records WHERE record_id=?",
+            (record_id,),
+        ).fetchone()
+        if existing is not None:
+            if (existing["available_at"] == availability.isoformat()
+                    and existing["payload_json"] == payload_json
+                    and existing["event_date"] == event_day):
+                return False
+            raise DataValidationError(
+                f"conflicting duplicate feature record: {normal_kind} {fixture_key} from {source}"
+            )
+        self._conn.execute(
+            """INSERT INTO feature_records
+            (record_id, kind, fixture_key, event_date, available_at, payload_json, source, source_id, content_hash)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (record_id, normal_kind, fixture_key.strip(), event_day, availability.isoformat(),
+             payload_json, source.strip(), source_id, digest),
+        )
+        self._conn.commit()
+        return True
+
     def ingest_openfootball_file(
         self,
         path: str | Path,
@@ -283,8 +356,12 @@ class PersistentDataStore:
 
     def snapshot(self, as_of: datetime) -> Snapshot:
         cutoff = _aware_utc(as_of).isoformat()
-        rows = self._conn.execute(
+        result_rows = self._conn.execute(
             "SELECT * FROM records WHERE available_at <= ? ORDER BY event_date, fixture_key",
+            (cutoff,),
+        ).fetchall()
+        feature_rows = self._conn.execute(
+            "SELECT * FROM feature_records WHERE available_at <= ? ORDER BY event_date, fixture_key, kind, record_id",
             (cutoff,),
         ).fetchall()
         records = [
@@ -296,12 +373,16 @@ class PersistentDataStore:
                 source=row["source"],
                 source_id=row["source_id"],
             )
-            for row in rows
+            for row in [*result_rows, *feature_rows]
         ]
+        records.sort(key=lambda record: (record.available_at, record.fixture_key, record.kind, record.source))
         return Snapshot(as_of=_aware_utc(as_of), records=records)
 
     def all_records(self) -> List[StoredRecord]:
-        rows = self._conn.execute("SELECT * FROM records ORDER BY fixture_key").fetchall()
+        result_rows = self._conn.execute("SELECT * FROM records ORDER BY fixture_key").fetchall()
+        feature_rows = self._conn.execute(
+            "SELECT * FROM feature_records ORDER BY fixture_key, kind, record_id"
+        ).fetchall()
         return [
             StoredRecord(
                 kind=row["kind"],
@@ -311,12 +392,19 @@ class PersistentDataStore:
                 source=row["source"],
                 source_id=row["source_id"],
             )
-            for row in rows
+            for row in [*result_rows, *feature_rows]
         ]
 
     def fingerprint(self) -> str:
-        rows = self._conn.execute(
+        result_rows = self._conn.execute(
             "SELECT fixture_key, content_hash, available_at, source FROM records ORDER BY fixture_key"
         ).fetchall()
-        serialised = json.dumps([tuple(row) for row in rows], separators=(",", ":"))
+        feature_rows = self._conn.execute(
+            "SELECT record_id, content_hash, available_at, source FROM feature_records ORDER BY record_id"
+        ).fetchall()
+        serialised = json.dumps(
+            {"results": [tuple(row) for row in result_rows],
+             "features": [tuple(row) for row in feature_rows]},
+            separators=(",", ":"),
+        )
         return hashlib.sha256(serialised.encode("utf-8")).hexdigest()
