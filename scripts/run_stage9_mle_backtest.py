@@ -26,6 +26,7 @@ if str(ROOT) not in sys.path:
 
 import alea_predictor_v2_4_1 as dc
 from stages.stage1.data_store import PersistentDataStore
+from stages.stage8.calibration import apply_temperature, fit_temperature
 
 
 def evaluate_period(
@@ -67,11 +68,22 @@ def evaluate_period(
         if test.empty:
             cutoff = end
             continue
+        if "available_at" not in training.columns or training["available_at"].isna().any():
+            raise ValueError("walk-forward data must contain timezone-aware available_at timestamps")
+        cutoff_utc = pd.Timestamp(cutoff)
+        cutoff_utc = cutoff_utc.tz_localize("UTC") if cutoff_utc.tzinfo is None else cutoff_utc.tz_convert("UTC")
+        availability = pd.to_datetime(training["available_at"], utc=True, errors="coerce")
+        if availability.isna().any():
+            raise ValueError("walk-forward data contains invalid available_at timestamps")
+        training = training.loc[availability <= cutoff_utc].copy()
+        training = training.sort_values("Date").reset_index(drop=True)
         if len(training) < min_train_matches:
             cutoff = end
             continue
         if training["Date"].dt.normalize().max() >= test["Date"].dt.normalize().min():
             raise AssertionError("temporal leakage: training date overlaps test block")
+        if pd.to_datetime(training["available_at"], utc=True).max() > cutoff_utc:
+            raise AssertionError("availability leakage: a training result was not available at prediction cutoff")
 
         # A failed production MLE fit aborts the evaluation. Never silently skip a fold.
         params = dc.fit_model(
@@ -106,6 +118,8 @@ def evaluate_period(
                 "train_rate_draw": float(train_rate[1]),
                 "train_rate_away": float(train_rate[2]),
                 "training_cutoff": str(cutoff.date()),
+                "training_data_through": str(training["Date"].max().date()),
+                "prediction_cutoff_utc": cutoff_utc.isoformat(),
                 "training_matches": int(len(training)),
                 "training_data_sha256": params["data_sha256"],
                 "model_version": params["model_version"],
@@ -118,6 +132,7 @@ def evaluate_period(
             "train_matches": int(len(training)),
             "test_matches": int(fold_count),
             "train_max_date": str(training["Date"].max().date()),
+            "train_max_available_at": pd.to_datetime(training["available_at"], utc=True).max().isoformat(),
             "test_min_date": str(test["Date"].min().date()),
             "test_max_date": str(test["Date"].max().date()),
             "fit_model_version": params["model_version"],
