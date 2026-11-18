@@ -14,7 +14,8 @@
 - Fixed Stage 4–6 package imports. Missing xG now returns `None`; rolling xG is ordered by match date; Stage 5 no longer fabricates numeric player-impact weights.
 - Hardened Stage 7 probability/weight/fixture validation.
 - Added Stage 8 out-of-sample temperature calibration with per-prediction training-cutoff checks.
-- Added Stage 9 production MLE expanding-window runner with a separate final-season holdout and per-match provenance.
+- Added Stage 9 production MLE expanding-window runner with a separate final-season holdout, availability-time filtering, per-match provenance, development-only calibration, and paired ISO-week bootstrap uncertainty.
+- Added a GitHub Actions workflow to fetch five OpenFootball seasons and run the production MLE backtest as an artifact-producing job.
 - Added Stage 10 evidence-gated model registry and rollback.
 - Added Stage 11 pre-kickoff prediction response and immutable prediction history.
 - Added Stage 12 artifact checksum, backup/restore, data-freshness and high-confidence working-tree secret checks.
@@ -23,7 +24,7 @@
 ## Not yet verified / not yet complete
 
 - The latest integrated-branch CI run must complete successfully. Earlier CI on the older repair branch passed 15 tests, but that does not validate this integrated branch.
-- The OpenFootball historical dataset has not yet been fetched/imported on this branch.
+- The OpenFootball historical dataset has not yet been fetched/imported by the new integrated-branch workflow.
 - The production MLE walk-forward and final-season holdout have not yet been run on the imported dataset. No new real-data performance numbers are claimed.
 - Elo/form have not yet been evaluated as probability models against the production MLE on identical out-of-sample fixtures.
 - xG, injuries, lineups and context remain disabled as predictive inputs until suitable licensed, timestamped historical sources are connected.
