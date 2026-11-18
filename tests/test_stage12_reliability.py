@@ -48,6 +48,8 @@ def test_data_freshness_reports_missing_fresh_and_stale():
     assert data_freshness(now - timedelta(days=5), now)["status"] == "stale"
     with pytest.raises(ReliabilityError, match="future"):
         data_freshness(now + timedelta(hours=1), now)
+    with pytest.raises(ReliabilityError, match="finite"):
+        data_freshness(now, now, max_age_hours=float("nan"))
 
 
 def test_secret_scanner_reports_location_without_echoing_secret(tmp_path):
