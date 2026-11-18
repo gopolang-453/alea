@@ -28,7 +28,7 @@ from stages.stage2.dixon_coles import (
 ])
 def test_exact_markets_match_a_wide_score_grid(lam, mu, rho):
     matrix, tail = score_matrix(lam, mu, rho, max_goals=80)
-    assert tail < 1e-12
+    assert 0.0 <= tail < 1e-12
     expected_1x2 = exact_one_x_two(lam, mu, rho)
     grid_1x2 = one_x_two(matrix)
     assert np.allclose(expected_1x2, grid_1x2, atol=1e-12, rtol=1e-12)
