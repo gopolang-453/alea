@@ -1,10 +1,13 @@
 from datetime import datetime, timezone
 
 import pandas as pd
+from pathlib import Path
 import pytest
 
 from stages.stage1.data_store import (
     DataStore,
+    PersistentDataStore,
+    ingest_csv,
     DataValidationError,
     Record,
     ingest_results_frame,
@@ -87,3 +90,21 @@ def test_negative_scores_and_self_fixtures_fail_closed():
         ingest_results_frame(DataStore(), bad_score)
     with pytest.raises(DataValidationError, match="cannot play itself"):
         ingest_results_frame(DataStore(), self_fixture)
+
+
+
+def test_sqlite_store_persists_and_reopens_idempotently(tmp_path):
+    db = tmp_path / "alea.sqlite"
+    csv_path = Path(__file__).parent / "fixtures" / "epl_sample.csv"
+
+    with PersistentDataStore(db) as store:
+        assert ingest_csv(store, csv_path) == 3
+        fingerprint = store.fingerprint()
+        assert ingest_csv(store, csv_path) == 0
+        assert len(store.all_records()) == 3
+
+    with PersistentDataStore(db) as reopened:
+        assert len(reopened.all_records()) == 3
+        assert reopened.fingerprint() == fingerprint
+        snapshot = reopened.snapshot(datetime(2024, 8, 21, 12, tzinfo=timezone.utc))
+        assert len(snapshot.to_results_frame()) == 3
