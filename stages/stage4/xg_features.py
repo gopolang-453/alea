@@ -54,7 +54,7 @@ def team_xg_history(
     Rolling xG for and against for `team` from the last n matches
     whose xG records were available before as_of.
     venue: "home", "away", or None.
-    Returns zeros and matches=0 when no data is available.
+    Returns None when no data is available.
     """
     as_of = _ensure_aware(as_of)
     team_c = canonical_team(team)
