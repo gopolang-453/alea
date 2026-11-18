@@ -278,7 +278,7 @@ def main() -> int:
     parser.add_argument("--database", default="data/alea.sqlite")
     parser.add_argument("--holdout-season", default="2023-24")
     parser.add_argument("--min-train-matches", type=int, default=380)
-    parser.add_argument("--step-days", type=int, default=28)
+    parser.add_argument("--step-days", type=int, default=56)
     parser.add_argument("--xi", type=float, default=0.0018)
     parser.add_argument("--reg", type=float, default=1.0)
     parser.add_argument("--output-dir", default="results/stage9_mle")
