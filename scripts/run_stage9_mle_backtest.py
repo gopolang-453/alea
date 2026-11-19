@@ -36,6 +36,28 @@ def _ensure_datetime(df: pd.DataFrame) -> pd.DataFrame:
     return out
 
 
+def _prepare_training_frame(df: pd.DataFrame) -> pd.DataFrame:
+    """Map Stage 1 snapshot rows into the production predictor's expected schema."""
+    if df.empty:
+        return df.copy()
+    cleaned, _report = dc.clean_matches(df, verbose=False)
+    # Preserve Season for holdout splitting when present.
+    if "Season" in df.columns and "Season" not in cleaned.columns:
+        # Re-attach Season by fixture key after cleaning.
+        key_cols = ["Date", "HomeTeam", "AwayTeam"]
+        season_map = (
+            _ensure_datetime(df)[key_cols + ["Season"]]
+            .assign(
+                Date=lambda x: pd.to_datetime(x["Date"]).dt.normalize(),
+                HomeTeam=lambda x: x["HomeTeam"].map(dc._team_name),
+                AwayTeam=lambda x: x["AwayTeam"].map(dc._team_name),
+            )
+            .drop_duplicates(subset=key_cols)
+        )
+        cleaned = cleaned.merge(season_map, on=key_cols, how="left")
+    return cleaned
+
+
 def evaluate_period(
     evaluation: pd.DataFrame,
     seed_training: pd.DataFrame,
@@ -83,19 +105,25 @@ def evaluate_period(
         if training["Date"].dt.normalize().max() >= test["Date"].dt.normalize().min():
             raise AssertionError("temporal leakage: training date overlaps test block")
 
+        training_clean = _prepare_training_frame(training)
+        if len(training_clean) < min_train_matches:
+            cutoff = end
+            continue
+
         # A failed production MLE fit aborts the evaluation. Never silently skip a fold.
         params = dc.fit_model(
-            training, xi=xi, reg=reg, verbose=False, as_of_date=cutoff
+            training_clean, xi=xi, reg=reg, verbose=False, as_of_date=cutoff
         )
         train_outcomes = np.vstack([
             dc._actual_outcome(int(row.FTHG), int(row.FTAG))
-            for row in training.itertuples()
+            for row in training_clean.itertuples()
         ])
         train_rate = np.clip(train_outcomes.mean(axis=0), 1e-12, 1.0)
         train_rate /= train_rate.sum()
 
+        test_clean = _prepare_training_frame(test)
         fold_count = 0
-        for row in test.itertuples():
+        for row in test_clean.itertuples():
             home, away = row.HomeTeam, row.AwayTeam
             prior_only = home not in params["attack"] or away not in params["attack"]
             probs = dc._predict_outcome_probs(
@@ -105,7 +133,7 @@ def evaluate_period(
             prediction_rows.append({
                 "period": label,
                 "season": getattr(row, "Season", ""),
-                "date": row.Date.date().isoformat(),
+                "date": pd.Timestamp(row.Date).date().isoformat(),
                 "home_team": home,
                 "away_team": away,
                 "p_home": float(probs[0]),
@@ -115,8 +143,8 @@ def evaluate_period(
                 "train_rate_home": float(train_rate[0]),
                 "train_rate_draw": float(train_rate[1]),
                 "train_rate_away": float(train_rate[2]),
-                "training_cutoff": str(cutoff.date()),
-                "training_matches": int(len(training)),
+                "training_cutoff": str(pd.Timestamp(cutoff).date()),
+                "training_matches": int(len(training_clean)),
                 "training_data_sha256": params["data_sha256"],
                 "model_version": params["model_version"],
                 "prior_only_team": bool(prior_only),
@@ -124,16 +152,16 @@ def evaluate_period(
             fold_count += 1
 
         fold_rows.append({
-            "cutoff": str(cutoff.date()),
-            "train_matches": int(len(training)),
+            "cutoff": str(pd.Timestamp(cutoff).date()),
+            "train_matches": int(len(training_clean)),
             "test_matches": int(fold_count),
-            "train_max_date": str(training["Date"].max().date()),
-            "test_min_date": str(test["Date"].min().date()),
-            "test_max_date": str(test["Date"].max().date()),
+            "train_max_date": str(pd.Timestamp(training_clean["Date"].max()).date()),
+            "test_min_date": str(pd.Timestamp(test_clean["Date"].min()).date()) if fold_count else None,
+            "test_max_date": str(pd.Timestamp(test_clean["Date"].max()).date()) if fold_count else None,
             "fit_model_version": params["model_version"],
             "fit_data_sha256": params["data_sha256"],
         })
-        print(f"{label} | {cutoff.date()} | train={len(training)} | test={fold_count}")
+        print(f"{label} | {pd.Timestamp(cutoff).date()} | train={len(training_clean)} | test={fold_count}")
         cutoff = end
 
     if not prediction_rows:
