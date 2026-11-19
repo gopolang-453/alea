@@ -1,13 +1,7 @@
 # ALEA Stage Progress Report
 
 **Branch:** `repair/alea-3.0-end-to-end`  
-**Report time:** 19 November 2026 21:08 UTC  
-**Latest commits this session:**
-- `9d0af7ae` — Stage 1 acceptance documentation
-- `b762c3f8` — Stage 2 parity test vs production
-- `025eb954` — Stage 2 STATUS
-- `50ab608f` — Stage 3 STATUS (PARTIAL)
-- `345ea611` — Stage 4 STATUS clarified
+**Report time:** 19 November 2026 21:20 UTC
 
 ---
 
@@ -15,49 +9,47 @@
 
 | Stage | Status | Notes |
 |-------|--------|-------|
-| **1** Data store | **PASS** | Persistent, idempotent, conservative availability, feature records, OpenFootball atomic import. Evidence in `stages/stage1/STATUS.md` + tests. |
-| **2** Dixon-Coles maths | **PASS** | Exact full-distribution 1X2/BTTS/totals + parity test against production closed-form path. |
-| **3** Elo / form features | **PARTIAL** | Feature builders + temporal safety PASS. Probability mapping + evaluation vs MLE still open (needs Stage 9). |
-| **4** xG | **BLOCKED** | Calculators exist; no licensed timestamped historical source → not evaluated. |
-| **5** Player / injury | **BLOCKED** | Same external-data limitation. |
-| **6** Context | **BLOCKED** | Same external-data limitation. |
-| **7** Ensemble / trained models | **NOT DONE** | Safety scaffolding exists; no trained model or weight learning on real data. |
-| **8** Calibration | **NOT DONE** | Temperature code exists; not yet proven on later out-of-sample data from a real walk-forward. |
-| **9** Full MLE walk-forward + prospective scoring | **NOT DONE** | Runner + prospective ledger exist. Real OpenFootball import + development/holdout run has not been executed and reported on this branch tip. |
-| **10–12** Registry / prediction service / reliability | **PARTIAL** | Code + unit tests exist. Not an integrated running pipeline. |
-| **13** Release | **NOT COMPLETE** | As required. |
+| **1** Data store | **PASS** | FC/AFC strip added so OpenFootball names import cleanly. |
+| **2** Dixon-Coles maths | **PASS** | Exact markets + parity test. |
+| **3** Elo / form features | **PARTIAL** | Builders OK. Probability mapping + MLE comparison still open. |
+| **4** xG | **BLOCKED** | No licensed timestamped historical source. |
+| **5** Player / injury | **BLOCKED** | Same. |
+| **6** Context | **BLOCKED** | Same. |
+| **7** Ensemble | **PARTIAL** | Contracts + metrics + weighted average tested. No trained ML model (by design until features exist). |
+| **8** Calibration | **PARTIAL** | Temperature scaling with leakage checks implemented. Not yet proven on a completed real walk-forward artifact. |
+| **9** MLE walk-forward | **PARTIAL** | Runner fixed (name cleaning). OpenFootball import works (760 rows verified locally). Full multi-season walk-forward not yet completed as a committed artifact on this tip. Prospective ledger exists and is tested. |
+| **10** Model registry | **PARTIAL** | Evidence-gated promote/rollback implemented and unit-tested. Not deployed. |
+| **11** Prediction service | **PARTIAL** | Traceable prediction response + history store exist as code. Not deployed. |
+| **12** Reliability | **PARTIAL** | Checksum, backup/restore, freshness, secret-scan utilities exist. Not operational monitoring. |
+| **13** Release | **NOT COMPLETE** | Required. |
 
 ---
 
-## What was actually pushed this session
+## What was done this session (remaining stages)
 
-1. Stage 1 formal acceptance document (`stages/stage1/STATUS.md`).
-2. Stage 2 parity test (`tests/test_stage2_parity.py`) and acceptance document.
-3. Stage 3 honest PARTIAL status (features ok, evaluation still open).
-4. Stage 4 status clarified as evaluation-blocked.
-
-No merge to `main`. No release. No invented xG/injury data.
+1. **Stage 1 fix** — `canonical_team` now strips `FC`/`AFC` and expands OpenFootball aliases (`ec77871`).
+2. **Stage 9 fix** — runner runs production `clean_matches` before every MLE fit so OpenFootball names are accepted (`7272a14`).
+3. **Local verification** — OpenFootball 2022-23 + 2023-24 imported (760 results). Name mismatch that blocked the runner is fixed.
+4. Status of Stages 7–12 left honest: scaffolding + unit tests exist; no claim of integrated production pipeline or real-data Stage 9 completion.
 
 ---
 
-## Recommended next actions (in order)
+## What still blocks Stage 13
 
-1. **Run Stage 9 real-data path**  
-   ```bash
-   python scripts/fetch_openfootball.py
-   python scripts/run_stage9_mle_backtest.py --holdout-season 2023-24
-   ```
-   Then commit the report artifact (not the raw data) and update Stage 9 STATUS.
-
-2. **Stage 3 probability mapping + evaluation** on the same fixtures as the Stage 9 MLE run.
-
-3. Only after that: Stage 7/8 evidence, then 10–12 integration, then Stage 13 checklist.
+1. Complete and commit a real multi-season Stage 9 MLE walk-forward + holdout report (run is now unblocked; needs time to finish and artifact commit).
+2. Stage 3 Elo/form probability mapping evaluated on the same fixtures.
+3. Stages 4–6 remain disabled until real timestamped sources exist.
+4. No live scheduler / deployed service.
+5. No merge to `main`, no tag, no release.
 
 ---
 
-## Hard rules still in force
+## How to finish Stage 9 evidence
 
-- `alea_predictor_v2_4_1.py` stays frozen.
-- No betting / staking.
-- Stages 4–6 stay disabled for prediction until real timestamped sources exist.
-- Stage 13 stays open until real-data evidence and operational checks pass.
+```bash
+python scripts/fetch_openfootball.py --seasons 2019-20 2020-21 2021-22 2022-23 2023-24
+python scripts/run_stage9_mle_backtest.py --holdout-season 2023-24 --min-train-matches 380 --step-days 28
+# then commit results/stage9_mle/report.json (not the raw SQLite / raw JSON)
+```
+
+Do not mark Stage 13 complete until that report exists and the remaining gates above are closed.
