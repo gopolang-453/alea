@@ -26,6 +26,11 @@ def canonical_team(name: str) -> str:
     if not isinstance(name, str) or not name.strip():
         raise DataValidationError(f"invalid team name: {name!r}")
     key = " ".join(name.lower().replace(".", "").strip().split())
+    # OpenFootball and many feeds append FC / AFC.
+    if key.endswith(" fc"):
+        key = key[:-3].strip()
+    elif key.endswith(" afc"):
+        key = key[:-4].strip()
     aliases = {
         "man utd": "manchester united",
         "man united": "manchester united",
@@ -36,11 +41,19 @@ def canonical_team(name: str) -> str:
         "wolves": "wolverhampton",
         "wolverhampton wanderers": "wolverhampton",
         "brighton": "brighton and hove albion",
+        "brighton & hove albion": "brighton and hove albion",
         "west ham": "west ham united",
         "newcastle": "newcastle united",
         "nott'm forest": "nottingham forest",
+        "nottingham forest": "nottingham forest",
         "leicester": "leicester city",
         "ipswich": "ipswich town",
+        "afc bournemouth": "bournemouth",
+        "bournemouth": "bournemouth",
+        "sheffield united": "sheffield united",
+        "sheffield utd": "sheffield united",
+        "luton": "luton town",
+        "luton town": "luton town",
     }
     return aliases.get(key, key)
 
