@@ -2,11 +2,21 @@
 
 ## Status: NOT COMPLETE
 
-The roadmap checklist cannot be marked complete. Reasons:
+### Current blockers
 
-- No real historical data source has been wired through the Stage 1 store for a full walk-forward evaluation of Stages 3–7 features.
-- No comparative evidence exists that Elo, form, xG, injuries, or contextual features improve on the Dixon-Coles baseline.
-- No production scheduler, live API fetchers, or deployed interface exist.
-- Model versioning and recovery contracts are tested in isolation but not integrated into a running pipeline.
+1. **Stage 9 real-data artifact** — OpenFootball import and the production MLE runner are fixed (FC/AFC strip + `clean_matches`). A completed multi-season walk-forward + 2023-24 holdout report has not yet been committed as evidence.
+2. **Stage 3 evaluation** — Elo/form features are not yet scored against the production MLE on identical out-of-sample fixtures.
+3. **Stages 4–6** — Remain disabled; no licensed timestamped historical sources.
+4. **Stages 10–12** — Code and unit tests exist; not an integrated deployed pipeline.
+5. **No live scheduler or production service.**
 
-Stages 1–12 supply tested contracts and scaffolding. Stage 13 remains open until the evidence and integration gaps above are closed.
+### Release rule (unchanged)
+
+Do not mark Stage 13 complete, promote a champion, or tag `v3.0.0` until:
+
+- Integrated-branch CI is green.
+- A reproducible Stage 9 development + holdout report exists with log loss, Brier, RPS, accuracy and uncertainty.
+- Feature decisions are evidence-backed or explicitly rejected.
+- Operational recovery checks for the claimed scope are exercised.
+
+A passing unit-test suite alone is not Stage 13.
