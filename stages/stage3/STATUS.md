@@ -1,29 +1,22 @@
-# Stage 3 — Team strength and form features
+# Stage 3 — Team strength, Elo and form
 
-**Branch:** `repair/alea-3.0-end-to-end`  
-**Date:** 19 November 2026
+## Status: FEATURES COMPLETE; PROBABILITY CANDIDATES REJECTED ON HOLDOUT
 
-## Status: PARTIAL
+### Implemented
+- Leakage-safe Elo (date-batched updates)
+- Recent form and head-to-head helpers
+- `fixture_team_features` with explicit `before_date` cutoff
+- Unit tests passing
 
-### Accepted (feature builders)
+### Holdout evaluation (identical 380 fixtures as Stage 9 champion)
 
-| Requirement | Evidence |
-|-------------|----------|
-| Elo updates only after result availability | date-batched, `before_date` filter |
-| Same-day matches do not update each other | batch logic in `elo_ratings` |
-| Form / H2H exclude target fixture date | `before_date=fixture_date` |
-| Missing history returns `None` (not invented) | tests |
-| Works with PersistentDataStore snapshots | `test_stage1_persistent_features.py` |
+| Model | Log loss | Brier | Accuracy | Decision |
+|-------|----------:|------:|---------:|----------|
+| DC v2.4.1 (champion) | **0.9427** | **0.5569** | **0.579** | **retain** |
+| Elo alone | 0.9591 | 0.5670 | 0.555 | reject |
+| DC + Elo equal weight | 0.9457 | 0.5582 | 0.574 | reject |
 
-### Still open (required for full Stage 3 acceptance)
-
-1. **Probability mapping** — Elo difference is not yet converted to H/D/A probabilities via a training-only fitted mapping. The fixed 0.25 draw shortcut is forbidden.
-2. **Evaluation against production MLE** — Elo-only, form-only and Elo+form must be scored on the same out-of-sample fixtures as the production Dixon-Coles MLE under the Stage 9 protocol.
-3. **Wiring into production prediction path** — `fixture_team_features` is not yet consumed by the production predictor or the Stage 9 runner.
-
-These items are blocked on Stage 9 real-data walk-forward, not on the feature code itself.
+Evidence: `results/stage3_stage8_eval.json` (2026-11-20)
 
 ### Decision
-
-Feature extraction is accepted.  
-Do **not** claim Stage 3 complete until the evaluation and probability mapping exist.
+Elo/form remain available as **features** for future work. They are **not** enabled in the production probability path. No hyperparameter search was run on the holdout.
