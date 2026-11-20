@@ -1,0 +1,50 @@
+{
+  "stage8_temperature": {
+    "method": "multiclass_temperature_scaling",
+    "temperature": 1.2001184556909523,
+    "n_samples": 559,
+    "baseline_log_loss": 0.9907479050811668,
+    "calibrated_log_loss": 0.9870179765865196,
+    "log_loss_improvement": 0.003729928494647261,
+    "should_apply": true,
+    "calibration_match_start": "2022-01-18",
+    "calibration_match_end": "2023-05-28",
+    "training_cutoffs_strictly_before_matches": true,
+    "note": "Fitted on development only. Holdout application worsened log loss; do not enable."
+  },
+  "holdout_comparison": [
+    {
+      "label": "DC holdout (champion)",
+      "n": 380,
+      "log_loss": 0.9427244924177356,
+      "brier": 0.5569216678541795,
+      "rps_note": "use Stage 9 report RPS 0.194 for official ranking",
+      "accuracy": 0.5789473684210527
+    },
+    {
+      "label": "Elo alone holdout",
+      "n": 380,
+      "log_loss": 0.9591,
+      "brier": 0.5670,
+      "accuracy": 0.555,
+      "decision": "reject — worse than champion"
+    },
+    {
+      "label": "DC+Elo equal holdout",
+      "n": 380,
+      "log_loss": 0.9457,
+      "brier": 0.5582,
+      "accuracy": 0.574,
+      "decision": "reject — does not beat champion"
+    },
+    {
+      "label": "DC+temp holdout",
+      "n": 380,
+      "log_loss": 0.9480,
+      "brier": 0.5603,
+      "accuracy": 0.579,
+      "decision": "reject — temperature fit on development harms holdout"
+    }
+  ],
+  "promotion_decision": "Retain alea-dc-v2.4.1 as champion. No Stage 3 or Stage 8 candidate cleared the acceptance gate on the untouched 2023-24 holdout."
+}
