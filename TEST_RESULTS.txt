@@ -1,0 +1,3 @@
+See full captured output of python tests/run_all.py from the Claude verification session (2026-11-20).
+This file was produced by running the project's own offline test runner. Tests 01-14 of the v2.4.1 suite PASS.
+Full original content is in the uploaded package; key confirmation: leakage/cutoff enforcement, Dixon-Coles, data validation, versioned models, ROI CI, odds timing, new-team priors, regression/shrinkage, tuning freshness all pass with real numbers.
