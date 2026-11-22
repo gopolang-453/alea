@@ -5,6 +5,7 @@ from datetime import date, timedelta
 from pathlib import Path
 
 import numpy as np
+import pytest
 import pandas as pd
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -92,10 +93,8 @@ def test_holdout_runner_starts_from_development_data_without_using_future_holdou
     assert all(train_max < cutoff for train_max, cutoff in seen)
 
 
-
 def test_runner_excludes_results_not_yet_available_at_prediction_cutoff(monkeypatch):
     seed = make_matches(date(2024, 1, 1), 2, "2023-24")
-    # Make the second day's results arrive after the third-day prediction cutoff.
     seed.loc[seed["Date"] == pd.Timestamp("2024-01-02"), "available_at"] = (
         pd.Timestamp("2024-01-02", tz="UTC") + pd.Timedelta(hours=36)
     )
@@ -128,7 +127,6 @@ def test_runner_excludes_results_not_yet_available_at_prediction_cutoff(monkeypa
     assert set(seen[0]) == {date(2024, 1, 1)}
 
 
-
 def test_paired_week_bootstrap_is_deterministic_and_reports_candidate_gain():
     rows = [
         {"date": "2024-01-06", "actual": "H", "p_home": 0.7, "p_draw": 0.2, "p_away": 0.1,
@@ -146,7 +144,6 @@ def test_paired_week_bootstrap_is_deterministic_and_reports_candidate_gain():
     assert first["n_week_blocks"] == 2
     assert first["log_loss_difference_candidate_minus_baseline"] < 0
     assert first["log_loss_difference_ci95_upper"] < 0
-
 
 
 def test_historical_dataset_validator_checks_season_counts_teams_and_duplicates():
