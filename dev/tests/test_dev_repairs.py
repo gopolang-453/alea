@@ -74,6 +74,41 @@ def test_alias_and_save_load(tmp=Path("/tmp/alea_dev_model.json")):
     print("PASS save/load, 1X2 sums to 1, value engine rejects nothing on a valid market")
 
 
+def test_extreme_team_strength_refused():
+    # A tiny 4-team league where one team wins every match by the maximum
+    # plausible margin (15-0), repeated, with near-zero regularisation.
+    # The unpenalised MLE pushes that team's attack strength past the
+    # 3 log-point sanity cap (~20x the league scoring rate), which must be
+    # refused with reg this low, and must fit cleanly once reg is sane.
+    clubs = ["Titan", "A", "B", "C"]
+    rows, day, k = [], pd.Timestamp("2023-08-01"), 0
+    for _ in range(6):
+        for i, h in enumerate(clubs):
+            for aw in clubs[i + 1:]:
+                if h == "Titan":
+                    hg, ag = 15, 0
+                elif aw == "Titan":
+                    hg, ag = 0, 15
+                else:
+                    hg, ag = 1 + (k % 2), k % 3
+                rows.append((str((day + pd.Timedelta(days=k)).date()), h, aw, hg, ag))
+                k += 1
+    df = _frame(rows)
+
+    for reg in (0.0001, 0.001, 0.01):
+        try:
+            a.fit_model(df, xi=0.0, reg=reg, verbose=False, as_of_date="2025-01-01")
+        except RuntimeError as exc:
+            assert "3 log-points" in str(exc)
+        else:
+            raise SystemExit(f"reg={reg} should have tripped the team-strength sanity check")
+
+    # Confirm the guard isn't just always-on: a sane reg fits normally.
+    params = a.fit_model(df, xi=0.0, reg=0.1, verbose=False, as_of_date="2025-01-01")
+    assert abs(params["attack"]["Titan"]) <= 3.0
+    print("PASS extreme team strength refused at low reg; sane reg fits normally")
+
+
 def test_invalid_input_refused():
     df = _frame([("2024-01-01", "Arsenal", "Arsenal", 1, 0)])
     try:
@@ -104,6 +139,7 @@ def test_shin_and_value_arithmetic():
 if __name__ == "__main__":
     test_reg0_refuses_a_team_with_no_goals()
     test_alias_and_save_load()
+    test_extreme_team_strength_refused()
     test_invalid_input_refused()
     test_shin_and_value_arithmetic()
     print("ALL DEV CHECKS PASSED")
