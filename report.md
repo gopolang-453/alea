@@ -1,16 +1,16 @@
 # ALEA prospective forecast report
 
-Generated: 2026-11-24T16:01:07.338324+00:00  
+Generated: 2026-11-24T16:07:40.567533+00:00  
 Champion: `alea-dc-v2.4.1`  
 Ledger fingerprint (champion forecasts): `cf486e7d30701173e9f7eea3d7f74fdbbb19ca13b43470e489f74ad2c58381b8`
 
 ## This run
 
-- Run id: `20261124T160107Z`
+- Run id: `20261124T160740Z`
 - Status: **ok**
 - forecasts recorded: 0
 - forecasts already in ledger: 10
-- challenger forecasts recorded: 20
+- challenger forecasts recorded: 0
 - outcomes settled: 0
 - too close to kickoff: 0
 - Results from Wikipedia, '2026–27 Premier League' (revision 1387424026), CC BY-SA 4.0, https://en.wikipedia.org/w/index.php?oldid=1387424026

@@ -1,6 +1,6 @@
 {
   "store": "ledger-data/ledger.sqlite",
-  "ran_at_utc": "2026-11-24T16:01:11.790012+00:00",
+  "ran_at_utc": "2026-11-24T16:07:47.293206+00:00",
   "checks": {
     "source_integrity": true,
     "backup_created_and_verified": true,
@@ -29,8 +29,8 @@
       "sqlite_integrity_check": "ok"
     },
     "backup_manifest": {
-      "backup": "ledger_20261124T160109920763Z_a7b7a6dd79f13cbc.sqlite",
-      "sha256": "a7b7a6dd79f13cbc59e83e3ac80ef3b89842a1bfe03fd54a207ea3def66fa853",
+      "backup": "ledger_20261124T160744860493Z_5936bfd716f0d130.sqlite",
+      "sha256": "5936bfd716f0d130e8c49a0544f96eb182ab4de5ea50b9132542def02b7c9b6a",
       "fingerprint": "cf486e7d30701173e9f7eea3d7f74fdbbb19ca13b43470e489f74ad2c58381b8",
       "champion_forecasts": 10
     },
