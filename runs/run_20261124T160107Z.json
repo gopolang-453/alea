@@ -1,0 +1,179 @@
+{
+  "run_id": "20261124T160107Z",
+  "run_at_utc": "2026-11-24T16:01:07.338324+00:00",
+  "status": "ok",
+  "champion": "alea-dc-v2.4.1",
+  "code_sha": "f7acb685a80c5fb3523308f207f2bc890ffc2958",
+  "parameters": {
+    "horizon_days": 7.0,
+    "min_lead_hours": 48.0,
+    "grace_hours": 60.0,
+    "max_age_hours": 240.0
+  },
+  "ledger_before": {
+    "ok": true,
+    "champion_forecasts": 10,
+    "outcomes": 0,
+    "fingerprint": "cf486e7d30701173e9f7eea3d7f74fdbbb19ca13b43470e489f74ad2c58381b8"
+  },
+  "sources": {
+    "fixtures": {
+      "name": "OpenFootball football.json (CC0)",
+      "sha256": "bb91f0ab3e8359df163bb9ec98549bfed85e200dd4c32f3bd606b5890d932dd2"
+    },
+    "results": {
+      "name": "Wikipedia (CC BY-SA 4.0)",
+      "title": "2026\u201327 Premier League",
+      "revid": 1387424026,
+      "revision_timestamp": "2026-11-23T22:06:16Z",
+      "update_parameter": "23 November 2026",
+      "content_sha256": "9c66fb138941cae87fdf3522e87885018b03df3b27d267191e5707d1f96550db",
+      "results": 110
+    },
+    "wikipedia_attribution": "Results from Wikipedia, '2026\u201327 Premier League' (revision 1387424026), CC BY-SA 4.0, https://en.wikipedia.org/w/index.php?oldid=1387424026"
+  },
+  "outcomes_settled": [],
+  "settlement_conflicts": [],
+  "gates": {
+    "fixtures_due": 110,
+    "due_without_result": [],
+    "suspected_postponed": [],
+    "cross_checks": {
+      "openfootball": {
+        "compared": 50,
+        "disagreements": [],
+        "results_only_in_crosscheck": []
+      }
+    },
+    "cross_checked_results": 50,
+    "cross_check_disagreements": [],
+    "freshness": {
+      "status": "fresh",
+      "age_hours": 71.01870509,
+      "max_age_hours": 240.0,
+      "latest_result_available_at": "2026-11-21T17:00:00+00:00"
+    }
+  },
+  "too_close_to_kickoff": [],
+  "training_matches": 2770,
+  "training_data_sha256": "d5463a371bd94ef5c4c6325f49dc5f9c56bb383becc6ffef40b1e26e4cfd0986",
+  "forecasts_recorded": 0,
+  "forecasts_already_in_ledger": 10,
+  "challenger_forecasts_recorded": 20,
+  "forecasts": [
+    {
+      "fixture_key": "2026-11-28|leeds united|coventry city",
+      "kickoff_utc": "2026-11-28T15:00:00+00:00",
+      "home": "leeds united",
+      "away": "coventry city",
+      "p_home": 0.5542,
+      "p_draw": 0.2334,
+      "p_away": 0.2123,
+      "prior_only": false,
+      "status": "already_in_ledger"
+    },
+    {
+      "fixture_key": "2026-11-28|ipswich town|aston villa",
+      "kickoff_utc": "2026-11-28T15:00:00+00:00",
+      "home": "ipswich town",
+      "away": "aston villa",
+      "p_home": 0.2327,
+      "p_draw": 0.2279,
+      "p_away": 0.5394,
+      "prior_only": false,
+      "status": "already_in_ledger"
+    },
+    {
+      "fixture_key": "2026-11-28|arsenal|manchester city",
+      "kickoff_utc": "2026-11-28T15:00:00+00:00",
+      "home": "arsenal",
+      "away": "manchester city",
+      "p_home": 0.4601,
+      "p_draw": 0.2768,
+      "p_away": 0.2631,
+      "prior_only": false,
+      "status": "already_in_ledger"
+    },
+    {
+      "fixture_key": "2026-11-28|manchester united|brentford",
+      "kickoff_utc": "2026-11-28T15:00:00+00:00",
+      "home": "manchester united",
+      "away": "brentford",
+      "p_home": 0.3988,
+      "p_draw": 0.2511,
+      "p_away": 0.3501,
+      "prior_only": false,
+      "status": "already_in_ledger"
+    },
+    {
+      "fixture_key": "2026-11-28|everton|liverpool",
+      "kickoff_utc": "2026-11-28T15:00:00+00:00",
+      "home": "everton",
+      "away": "liverpool",
+      "p_home": 0.2527,
+      "p_draw": 0.2698,
+      "p_away": 0.4775,
+      "prior_only": false,
+      "status": "already_in_ledger"
+    },
+    {
+      "fixture_key": "2026-11-28|fulham|bournemouth",
+      "kickoff_utc": "2026-11-28T15:00:00+00:00",
+      "home": "fulham",
+      "away": "bournemouth",
+      "p_home": 0.3739,
+      "p_draw": 0.2796,
+      "p_away": 0.3465,
+      "prior_only": false,
+      "status": "already_in_ledger"
+    },
+    {
+      "fixture_key": "2026-11-28|nottingham forest|chelsea",
+      "kickoff_utc": "2026-11-28T15:00:00+00:00",
+      "home": "nottingham forest",
+      "away": "chelsea",
+      "p_home": 0.3624,
+      "p_draw": 0.2673,
+      "p_away": 0.3703,
+      "prior_only": false,
+      "status": "already_in_ledger"
+    },
+    {
+      "fixture_key": "2026-11-28|brighton and hove albion|newcastle united",
+      "kickoff_utc": "2026-11-28T15:00:00+00:00",
+      "home": "brighton and hove albion",
+      "away": "newcastle united",
+      "p_home": 0.5028,
+      "p_draw": 0.2402,
+      "p_away": 0.257,
+      "prior_only": false,
+      "status": "already_in_ledger"
+    },
+    {
+      "fixture_key": "2026-11-28|sunderland|tottenham",
+      "kickoff_utc": "2026-11-28T15:00:00+00:00",
+      "home": "sunderland",
+      "away": "tottenham",
+      "p_home": 0.3543,
+      "p_draw": 0.2954,
+      "p_away": 0.3503,
+      "prior_only": false,
+      "status": "already_in_ledger"
+    },
+    {
+      "fixture_key": "2026-11-28|crystal palace|hull city",
+      "kickoff_utc": "2026-11-28T15:00:00+00:00",
+      "home": "crystal palace",
+      "away": "hull city",
+      "p_home": 0.2967,
+      "p_draw": 0.3092,
+      "p_away": 0.3942,
+      "prior_only": false,
+      "status": "already_in_ledger"
+    }
+  ],
+  "ledger_after": {
+    "fingerprint": "cf486e7d30701173e9f7eea3d7f74fdbbb19ca13b43470e489f74ad2c58381b8",
+    "challenger_fingerprint": "17dcff7c1a652451d0e142fccdc4d7e96c0bfb8df3a9d378959b5266e3491e65"
+  }
+}
