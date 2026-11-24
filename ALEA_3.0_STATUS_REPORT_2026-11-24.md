@@ -121,7 +121,16 @@ A local run on a copy of the ledger with a live Wikipedia fetch (24 Nov 2026 15:
 - 20 challenger rows recorded, with the champion fingerprint unchanged;
 - a second run added nothing.
 
-The live ledger now lives on the `prospective-ledger` branch, seeded byte-identically; the scheduled workflow is its only writer. Rules: `docs/PROSPECTIVE_EVALUATION.md`.
+The live ledger now lives on the `prospective-ledger` branch, seeded byte-identically; the scheduled workflow is its only writer.
+
+The first CI run of the workflow (run 45432121912) did the same on the live ledger:
+
+- status ok;
+- 0 new and 10 kept;
+- 20 challenger rows recorded;
+- drill passed;
+- API smoke test passed;
+- committed by github-actions to the data branch. Rules: `docs/PROSPECTIVE_EVALUATION.md`.
 
 ## Champion vs closing market (second pass, Task 7)
 
@@ -148,8 +157,8 @@ The live ledger now lives on the `prospective-ledger` branch, seeded byte-identi
 
 | Check | Result |
 |---|---|
-| `python -m pytest -q` | 115 passed (82 at session start) |
-| `python tests/run_all.py` | 36/36 files pass, with no false passes (see `TEST_RESULTS.txt`) |
+| `python -m pytest -q` | 115 passed (82 at session start); **194 passed** after the second pass (local 15m55s; CI run 45432120603) |
+| `python tests/run_all.py` | 36/36 files pass, with no false passes (see `TEST_RESULTS.txt`); 43/43 after the second pass |
 | `python dev/tests/test_dev_repairs.py` | ALL DEV CHECKS PASSED |
 | `python scripts/security_check.py` | no secrets found |
 | `sha256sum -c SHA256SUMS.txt` | v2.3.1, v2.4.1, value engine v0.2.1 all OK |

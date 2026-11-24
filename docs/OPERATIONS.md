@@ -59,7 +59,7 @@ python scripts/run_prospective_forecast.py --fetch-wikipedia \
 4. Settles finished fixtures.
 5. Refits the champion on the data available before the run.
 6. Appends forecasts for fixtures between 48 h and 7 days ahead.
-7. Writes `report.md`, `evaluation.json`, `runs/run_*.json`, `forecasts_*.csv`, `report_*.md` and `logs/run_*.log`.
+7. Writes `report.md`, `evaluation.json`, `runs/run_*.json`, `runs/forecasts_*.csv`, `runs/report_*.md` and `logs/run_*.log`.
 
 **Exit codes:**
 

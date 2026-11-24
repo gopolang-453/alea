@@ -144,8 +144,6 @@ jobs:
             ${{ env.LEDGER_DIR }}/runs/
             ${{ env.LEDGER_DIR }}/logs/
             ${{ env.LEDGER_DIR }}/stage12/
-            ${{ env.LEDGER_DIR }}/forecasts_*.csv
-            ${{ env.LEDGER_DIR }}/report_*.md
             backups/
             pipeline_stdout.json
             api_health.json
