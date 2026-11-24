@@ -1,0 +1,46 @@
+{
+  "store": "results/prospective/ledger.sqlite",
+  "ran_at_utc": "2026-11-24T15:29:57.131568+00:00",
+  "checks": {
+    "source_integrity": true,
+    "backup_created_and_verified": true,
+    "restore_ok": true,
+    "interrupted_write_rolled_back": true,
+    "truncated_file_detected": true,
+    "garbage_file_detected": true,
+    "missing_file_detected": true,
+    "restore_after_corruption": true,
+    "restore_rejects_tampered": true,
+    "restore_refuses_history_loss": true,
+    "duplicate_prevention_after_restore": true,
+    "append_only_after_restore": true,
+    "service_healthy_on_restored": true,
+    "service_refuses_corrupt_store": true,
+    "no_secrets_in_repo_or_logs": true,
+    "failure_is_logged": true,
+    "freshness_gate": true
+  },
+  "details": {
+    "source": {
+      "fingerprint": "cf486e7d30701173e9f7eea3d7f74fdbbb19ca13b43470e489f74ad2c58381b8",
+      "champion_forecasts": 10,
+      "challenger_forecasts": 0,
+      "outcomes": 0,
+      "sqlite_integrity_check": "ok"
+    },
+    "backup_manifest": {
+      "backup": "ledger_20261124T152954730043Z_45a6c11701b4ff87.sqlite",
+      "sha256": "45a6c11701b4ff879707d3d96d4257ca1faaefc6ec17a0c1104c451ea8ae7154",
+      "fingerprint": "cf486e7d30701173e9f7eea3d7f74fdbbb19ca13b43470e489f74ad2c58381b8",
+      "champion_forecasts": 10
+    },
+    "interrupted_write_exit_code": 9,
+    "service_on_restored": {
+      "health": 200,
+      "history": 200
+    },
+    "secret_findings": 0
+  },
+  "passed": true,
+  "scope": "actual ledger (read-only) + actual HTTP service; destructive steps on scratch copies"
+}

@@ -4,6 +4,22 @@
 
 The repair branch now contains first-pass implementations and tests for the missing stage modules, but final acceptance requires evidence from a real, reproducible production run and integration into a running service.
 
+## Update 24 Nov 2026 (second pass)
+
+Stage 13 is still **NOT COMPLETE**. See `RELEASE_READINESS_CHECKLIST.md`.
+
+- **Now implemented and tested:**
+  - prospective settlement and evaluation;
+  - a licensed results source (Wikipedia CC BY-SA plus OpenFootball CC0);
+  - the scheduled workflow with alerting;
+  - the API (with its container);
+  - the ledger backup/restore drill against the real store and service.
+- **Still open:**
+  1. No public deployment of the API.
+  2. The schedule fires only after the workflow is merged to `main`.
+  3. Prospective evidence is too small: 10 forecasts, 0 settled. The promotion rule needs 300 paired settled fixtures.
+  4. Stages 4–6 are blocked for lack of licensed, timestamped data.
+
 ## Update 24 Nov 2026
 
 See `ALEA_3.0_STATUS_REPORT_2026-11-24.md`. Blocker 1 is resolved: the production MLE walk-forward has run on 7 real seasons (holdout 2025-26) and its evidence is in `results/stage9_mle/`. Blocker 3 is resolved negatively: Elo/form were evaluated on identical fixtures and none was accepted. Blocker 4 is resolved: calibration was evaluated and is gated off. Blockers 5–7 (automation, service, operational reliability) remain open. Prospective forecasts are now recorded in `results/prospective/ledger.sqlite`.

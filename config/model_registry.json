@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "description": "Prospective-evaluation registry. The champion is frozen: its source file hash is verified before every fit and by the prediction service. Challengers are pre-registered here before they record any prospective forecast; adding or changing one requires a commit, so the registration date is auditable in git.",
+  "champion": {
+    "model_id": "champion",
+    "model_version": "alea-dc-v2.4.1",
+    "module": "alea_predictor_v2_4_1.py",
+    "module_sha256": "4cfc61085ae742a550944a410ec81a1b21a47cc8ab7688bde0d879c7c24f022a",
+    "parameters": {"xi": 0.0018, "reg": 1.0},
+    "fit": "refit on every scheduled run on all results available before the run time (OpenFootball 2019-20..2025-26 + current-season Wikipedia results)",
+    "frozen": true
+  },
+  "challengers": [
+    {
+      "model_id": "elo_ordered_logit",
+      "model_version": "stage9-elo-ordered-logit-v1",
+      "registered_at": "2026-11-24",
+      "definition": "Stage 3 Elo (initial 1500, K 20, home advantage 50, date-batched) -> ordered logit (ridge 0.001) on elo_diff, trained on every historical match after the first 380 (Elo burn-in) using its own pre-match Elo as of 00:00 UTC on match day. Identical to the Stage 9 candidate 'elo_ordered_logit'.",
+      "reason": "component of dc_elo_equal_average; needed to interpret it"
+    },
+    {
+      "model_id": "dc_elo_equal_average",
+      "model_version": "stage9-dc-elo-equal-average-v1",
+      "registered_at": "2026-11-24",
+      "definition": "0.5 * champion probabilities + 0.5 * elo_ordered_logit probabilities. Identical to the Stage 9 candidate 'dc_elo_equal_average'.",
+      "reason": "only Stage 9 challenger whose holdout CI included an improvement: log-loss diff -0.0030 [-0.0108, +0.0048] on 380 matches (inconclusive)"
+    }
+  ],
+  "promotion_rule": {
+    "min_paired_settled_fixtures": 300,
+    "criteria": "paired ISO-week block bootstrap (2000 samples): challenger-minus-champion log-loss CI95 upper bound < 0 AND Brier difference <= 0, on settled prospective fixtures only",
+    "automatic_promotion": false,
+    "note": "Meeting the rule makes a challenger eligible for human review. The registry is never changed automatically."
+  }
+}

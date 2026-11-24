@@ -1,8 +1,19 @@
-# ALEA 3.0 — Consolidated status report (24 Nov 2026)
+# ALEA 3.0 — Consolidated status report (24 Nov 2026, updated after the second pass)
 
 This report supersedes every earlier status, progress, plan and session report in the repository root (they now carry a "superseded" banner). Every number below was produced in this session by the scripts named next to it, on the real data described in "Data". Nothing was copied from older reports.
 
 **Bottom line:** ALEA 3.0 is **not released**. The frozen champion `alea-dc-v2.4.1` (Dixon–Coles MLE, fixed xi=0.0018, reg=1.0) stays. None of the 8 pre-registered challengers, temperature calibration, per-fold hyperparameter tuning or the dev candidate beat it with statistical support. The real-data Stage 9 pipeline now runs end to end for the first time, and live pre-kickoff forecasts are being recorded in a tamper-evident ledger.
+
+**Second pass (same day):** the following are now implemented and tested.
+
+- Prospective settlement and evaluation, including postponed, cancelled, abandoned and rescheduled matches, conflicts, and duplicates.
+- A licensed current-season results source: Wikipedia CC BY-SA 4.0, which matched football-data on 110/110 results.
+- A scheduled forecast workflow with alerting, using a dedicated `prospective-ledger` data branch.
+- The Stage 11 HTTP API and container.
+- The Stage 12 drill against the real ledger and the real service (17/17).
+- A champion-vs-closing-market comparison.
+
+Operations, data licensing, evaluation rules and the maths are documented in `docs/`. The release checklist is `RELEASE_READINESS_CHECKLIST.md`.
 
 There are **14 stages (0–13)**, not 18.
 
@@ -14,22 +25,26 @@ There are **14 stages (0–13)**, not 18.
 | 1 | Data store, team identity, real feeds | DONE | 7 OpenFootball seasons 2019-20…2025-26: 2,660 matches, fingerprint `37afdac1…6f9b`. Three real-feed bugs are fixed and covered by regression tests. |
 | 2 | Dixon–Coles core | DONE | `tests/test_stage2_parity.py` checks that exact 1X2/BTTS/O-U match the production model. |
 | 3 | Elo / form features | EVALUATED, NOT ADOPTED | Elo and form were evaluated as probability models and as stack inputs on identical fixtures. None was accepted (table below). |
-| 4 | xG | BLOCKED (data) | Timestamped historical xG exists only for the 110 matches of 2026-27 (football-data). It cannot be evaluated historically. |
-| 5 | Players / injuries | BLOCKED (data) | There is no timestamped historical source. |
-| 6 | Context factors | BLOCKED (data) | There is no timestamped historical source. |
+| 4 | xG | BLOCKED (data) | No source combines a licence for storage and training, continuous PL coverage and timestamps (StatsBomb open: non-commercial and partial; FBref: terms forbid ML; Understat: no licence). See `docs/DATA_SOURCES_AND_LICENSING.md`. |
+| 5 | Players / injuries | BLOCKED (data) | There is no licensed source with availability timestamps. Lineups appear about 1 h before kickoff, which is incompatible with forecasts made ≥48 h ahead. |
+| 6 | Context factors | BLOCKED (data) | Rest days could be derived from CC0 fixtures, but for PL games only, which would mismeasure rest. Not implemented. |
 | 7 | ML ensemble | NOT ADOPTED | Multinomial stackers (DC+Elo, DC+Elo+form) and an equal DC/Elo average were all rejected. No trained ML model exists. |
 | 8 | Calibration | EVALUATED, NOT APPLIED | Temperature T=1.022 improves dev log-loss by only 4.8e-5. The new minimum gain gate (0.001) keeps it off. The rolling-temperature challenger was also rejected. |
 | 9 | Walk-forward + holdout evaluation | DONE (first real run) | Weekly expanding window, holdout 2025-26, paired ISO-week block bootstrap. A prospective ledger is live. |
-| 10 | Registry / promotion | CODE ONLY | Evidence-gated registry exists. Nothing was promoted because no challenger passed. There is no scheduler. |
-| 11 | Prediction service | CODE ONLY | Traceable response and history store exist. No running API. |
-| 12 | Reliability / security | DRILL PASSES, NOT DEPLOYED | `scripts/recovery_drill.py` was missing despite STATUS.md citing it. It now exists and passes 6/6 checks. Freshness gates are used by the forecast script. The secret scan passes. |
-| 13 | Final acceptance | NOT COMPLETE | Release-gate items still open: deployed service and automation, and accumulated prospective evidence. |
+| 10 | Registry / promotion / automation | IMPLEMENTED, CI-TESTED, SCHEDULE PENDING MERGE | `config/model_registry.json` (frozen champion with hash, 2 pre-registered prospective challengers, promotion rule ≥300 paired settled fixtures, never automatic). `.github/workflows/weekly-prospective-forecast.yml` runs Tue/Fri 06:00 UTC once on `main`. |
+| 11 | Prediction service | IMPLEMENTED AND TESTED, NOT DEPLOYED | `stages/stage11/api.py` + `scripts/serve_api.py` + `Dockerfile`. 20 API tests, a container smoke test in CI, and a 503 on a foreign model, a hash mismatch or a corrupt ledger. No public host. |
+| 12 | Reliability / security | EXERCISED ON THE REAL STORE AND SERVICE, NOT A PRODUCTION DEPLOYMENT | `scripts/recovery_drill.py --ledger` covers 17 checks: backup, restore, interrupted write, corruption, missing DB, tampered backup, history-loss refusal, duplicates after restore, service 200/503, secrets, failure logging and freshness. 17/17 pass on the real ledger. |
+| 13 | Final acceptance | NOT COMPLETE | Open: public API deployment, the schedule live on `main`, ≥300 settled prospective forecasts (now 10 forecast, 0 settled), and Stages 4–6. |
 
 ## Data
 
 - **Historical:** OpenFootball `football.json` (CC0), seasons 2019-20 to 2025-26, fetched by `scripts/fetch_openfootball.py`. Raw files and the SQLite store stay in `data/` (gitignored); only source manifests are uploaded by CI.
-- **Current season:** football-data.co.uk `2627/E0.csv` (110 results through 23 Nov 2026). Its [disclaimer page](https://www.football-data.co.uk/disclaimer.php) states no licence, so it is read only from a local copy and never committed.
-- **Fixtures:** OpenFootball 2026-27. Its results stop at 20 Sep 2026, so it is used for fixtures and cross-checking only.
+- **Current season (automated, second pass):** the Wikipedia article "2026–27 Premier League", under [CC BY-SA 4.0](https://en.wikipedia.org/wiki/Wikipedia:Reusing_Wikipedia_content).
+  - It is read through the MediaWiki API, and the revision id is recorded per run.
+  - Revision 1387424026 matched football-data.co.uk on 110/110 results.
+- **football-data.co.uk:** its [terms](https://football-data.co.uk/contact.php) allow personal/academic use only (≤2 automated downloads a week). It is now only an optional local cross-check and is never committed.
+- **Fixtures:** OpenFootball 2026-27 (CC0). Its results stop at 20 Sep 2026, and later dates are placeholder matchweek dates (±2 days), hence the 48 h minimum lead.
+- **Full licensing findings:** `docs/DATA_SOURCES_AND_LICENSING.md`. It flags that the already-committed `results/predictions_*odds*.csv` files contain football-data Bet365 odds; removal is recommended.
 
 ## Fixes made in this session
 
@@ -93,6 +108,42 @@ Root cause: v2.4.1's own `tune_params` chooses reg=0 for 794 of 1,900 developmen
 
 First run (24 Nov 2026 14:36 UTC): 10 forecasts for 28 Nov 2026, training on 2,770 matches, ledger fingerprint `cf486e7d…381b8`. A second run was idempotent: 0 added, 10 kept. OpenFootball gives 15:00 for all ten; if TV picks change kickoffs, the ledger still holds because the forecasts were made four days early. Re-run the script after each matchweek to settle outcomes and add the next fixtures.
 
+**Second pass.** The pipeline now does the following:
+
+- **Results and settlement:** it fetches Wikipedia results and settles finished fixtures, recording every source observation. Disagreement creates a conflict that excludes the fixture until an operator correction.
+- **Fixture events:** it handles postponed, rescheduled, cancelled, abandoned and void fixtures through events.
+- **Challengers:** it records the 2 registered challengers for the same fixtures, using the recorded champion probabilities.
+- **Outputs:** it writes `report.md` and `evaluation.json` (settled and outstanding forecasts, metrics with CIs, challenger comparison, data-quality issues).
+
+A local run on a copy of the ledger with a live Wikipedia fetch (24 Nov 2026 15:32 UTC) gave status ok:
+
+- 0 new champion forecasts (all 10 already recorded);
+- 20 challenger rows recorded, with the champion fingerprint unchanged;
+- a second run added nothing.
+
+The live ledger now lives on the `prospective-ledger` branch, seeded byte-identically; the scheduled workflow is its only writer. Rules: `docs/PROSPECTIVE_EVALUATION.md`.
+
+## Champion vs closing market (second pass, Task 7)
+
+`scripts/compare_vs_market.py` writes aggregates only to `results/stage9_market/`. It pairs the frozen champion's leakage-free walk-forward forecasts with Bet365 closing Shin probabilities on 1,140 identical fixtures (0 unmatched). Differences are champion − market, with ISO-week block-bootstrap 95% CIs.
+
+| Slice | n | LL diff [95% CI] | Brier diff [95% CI] |
+|---|---:|---:|---:|
+| All 2023-24…2025-26 | 1,140 | +0.0222 [+0.0122, +0.0317] | +0.0150 [+0.0083, +0.0220] |
+| 2023-24 | 380 | +0.0299 [+0.0101, +0.0483] | +0.0213 [+0.0083, +0.0331] |
+| 2024-25 | 380 | +0.0229 [+0.0063, +0.0390] | +0.0163 [+0.0034, +0.0278] |
+| 2025-26 | 380 | +0.0137 [−0.0025, +0.0315] | +0.0075 [−0.0038, +0.0193] |
+| Market favourite < 0.50 | 474 | +0.0252 [+0.0095, +0.0405] | +0.0181 [+0.0066, +0.0294] |
+| Market favourite 0.50–0.65 | 408 | +0.0229 [+0.0082, +0.0393] | +0.0158 [+0.0051, +0.0269] |
+| Market favourite ≥ 0.65 | 258 | +0.0154 [−0.0066, +0.0371] | +0.0081 [−0.0065, +0.0221] |
+
+- **Gap to the market:** the market is better in every slice, and the gap is significant overall.
+- **Calibration:** expected calibration error is 0.0176 for the champion and 0.0083 for the market.
+- **Other evaluation findings (focus areas):**
+  - **DC/Elo equal average:** better than the champion in 4 of 5 seasons (2021-22 is the exception). The holdout gain is −0.0030 [−0.0108, +0.0048] (n=380), which is too small and uncertain to promote, so it is registered as a prospective challenger.
+  - **Dev model:** its guards (no reg=0 for goalless teams; strength cap of 3 log-points) target fits the fixed champion (reg=1.0) does not use. Tuned dev vs fixed champion: dev Δ LL +0.0036 [−0.0009, +0.0081], n=1,900, which shows no gain. It is a robustness fix only and is not registered as a challenger.
+  - **Experiments that did not help:** temperature calibration, per-fold tuning, the stacks and rolling temperature all failed (tables above).
+
 ## Tests and checks (this session)
 
 | Check | Result |
@@ -103,6 +154,8 @@ First run (24 Nov 2026 14:36 UTC): 10 forecasts for 28 Nov 2026, training on 2,7
 | `python scripts/security_check.py` | no secrets found |
 | `sha256sum -c SHA256SUMS.txt` | v2.3.1, v2.4.1, value engine v0.2.1 all OK |
 | `python scripts/recovery_drill.py` | 6/6 checks pass |
+| `python scripts/recovery_drill.py --ledger results/prospective/ledger.sqlite` (second pass) | 17/17 checks pass. The real ledger is byte-identical afterwards |
+| Second-pass test files | `test_prospective_pipeline.py`, `test_prospective_ledger_v2.py`, `test_live_sources.py`, `test_stage11_api.py`, `test_stage12_ledger_ops.py`, `test_ledger_admin.py`, `test_compare_vs_market.py` |
 
 New test files:
 
@@ -116,11 +169,12 @@ New test files:
 
 ## What remains (in priority order)
 
-1. **Accumulate prospective evidence.** Run the forecast script every matchweek. At about 150 settled forecasts, compare the champion and the DC/Elo average on the ledger.
-2. **Choose a results feed with a clear licence**, or get permission from football-data. Then schedule the forecast script (Stage 10) and let it upload artifacts only.
-3. **Deploy the prediction service (Stage 11)** behind the ledger, and run the recovery drill against the real store (Stage 12).
-4. **Stages 4–6 need timestamped historical xG, lineup and injury data** before they can be evaluated.
-5. **Stage 13 can close only after items 1–3.** Do not tag v3.0.0 before then.
+1. **Merge to `main`, with the owner's permission,** so the Tue/Fri schedule fires. Until then, the workflow runs only when its file changes on a `repair/**` branch.
+2. **Accumulate prospective evidence.** The promotion rule needs at least 300 paired settled fixtures, about 30 matchweeks. Do not compare earlier except as a monitoring check.
+3. **Deploy the API publicly** (container and instructions in `docs/OPERATIONS.md`), then re-run the drill against the deployed instance.
+4. **Decide on the committed odds files** (`results/predictions_*odds*.csv`, football-data terms).
+5. **Stages 4–6:** acquire a licensed, timestamped source first.
+6. **Stage 13 closes only when every row of `RELEASE_READINESS_CHECKLIST.md` is satisfied.** Do not tag v3.0.0 before then.
 
 ## Caveat on the 2025-26 holdout
 
