@@ -62,8 +62,17 @@ def fit_temperature(
     training_cutoffs: Sequence,
     *,
     min_samples: int = 50,
+    min_improvement: float = 0.001,
 ) -> Dict[str, Any]:
-    """Fit T on out-of-sample predictions and prove each training cutoff precedes its match."""
+    """Fit T on out-of-sample predictions and prove each training cutoff precedes its match.
+
+    ``should_apply`` is True only when the in-sample log-loss gain on the
+    calibration window is at least ``min_improvement`` (default 0.001 nats per
+    match). A smaller gain is indistinguishable from fitting noise, and
+    earlier runs switched calibration on for a 0.00005 gain.
+    """
+    if not np.isfinite(min_improvement) or min_improvement < 0:
+        raise ValueError("min_improvement must be a finite non-negative number")
     probs, actual = _validated_arrays(probabilities, outcomes)
     if min_samples < 1:
         raise ValueError("min_samples must be at least 1")
@@ -105,7 +114,10 @@ def fit_temperature(
         "baseline_log_loss": baseline,
         "calibrated_log_loss": calibrated_loss,
         "log_loss_improvement": improvement,
-        "should_apply": bool(improvement > 1e-8 and abs(temperature - 1.0) > 1e-3),
+        "min_improvement": float(min_improvement),
+        "should_apply": bool(
+            improvement >= max(min_improvement, 1e-8) and abs(temperature - 1.0) > 1e-3
+        ),
         "calibration_match_start": str(min(match_dates)),
         "calibration_match_end": str(max(match_dates)),
         "training_cutoffs_strictly_before_matches": True,

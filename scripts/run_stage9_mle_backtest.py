@@ -24,8 +24,44 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+import importlib.util
+
 import alea_predictor_v2_4_1 as dc
 from stages.stage1.data_store import PersistentDataStore
+
+
+def load_model_module(name: str):
+    """Return the predictor module under evaluation.
+
+    ``v2.4.1`` is the frozen reference. ``dev`` is the isolated
+    ``alea-dc-dev`` robustness candidate in ``dev/``. Both expose the same
+    fit/predict API, so they can be scored on identical folds.
+    """
+    if name == "v2.4.1":
+        return dc
+    if name == "dev":
+        path = ROOT / "dev" / "alea_predictor_dev.py"
+        spec = importlib.util.spec_from_file_location("alea_predictor_dev", path)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module
+    raise ValueError(f"unknown model {name!r}; use 'v2.4.1' or 'dev'")
+
+
+def _coerce_goals(frame: pd.DataFrame) -> pd.DataFrame:
+    """Force integer goal columns.
+
+    Concatenating with an empty seed frame (``pd.DataFrame(columns=...)``)
+    produces object-dtype goal columns, which made scipy's Poisson logpmf
+    raise ``ufunc 'isnan' not supported`` in CI run 45056028252.
+    """
+    frame = frame.copy()
+    for column in ("FTHG", "FTAG"):
+        numeric = pd.to_numeric(frame[column], errors="raise")
+        if numeric.isna().any() or not np.all(np.equal(numeric, np.floor(numeric))):
+            raise ValueError(f"{column} must contain integer goals")
+        frame[column] = numeric.astype("int64")
+    return frame
 from stages.stage8.calibration import apply_temperature, fit_temperature
 
 
@@ -151,6 +187,16 @@ def validate_historical_dataset(
             raise ValueError(
                 f"season {season} has {len(teams)} teams; expected {expected_teams_per_season}"
             )
+        season_text = str(season)
+        if len(season_text) == 7 and season_text[4] == "-" and season_text[:4].isdigit():
+            start_year = int(season_text[:4])
+            lower = pd.Timestamp(year=start_year, month=8, day=1)
+            upper = pd.Timestamp(year=start_year + 1, month=8, day=31)
+            dates = pd.to_datetime(frame["Date"])
+            if dates.min() < lower or dates.max() > upper:
+                raise ValueError(
+                    f"season {season} has match dates outside {lower.date()}..{upper.date()}"
+                )
         season_report[str(season)] = {
             "matches": int(len(frame)),
             "teams": int(len(teams)),
@@ -173,7 +219,10 @@ def evaluate_period(
     step_days: int,
     xi: float,
     reg: float,
+    model=None,
+    tune: bool = False,
 ) -> tuple[dict, list[dict]]:
+    model = dc if model is None else model
     evaluation = evaluation.copy()
     seed_training = seed_training.copy()
     evaluation["Date"] = pd.to_datetime(evaluation["Date"])
@@ -203,7 +252,10 @@ def evaluate_period(
         end = cutoff + pd.Timedelta(days=step_days)
         earlier_eval = evaluation[day < cutoff]
         test = evaluation[(day >= cutoff) & (day < end)]
-        training = pd.concat([seed_training, earlier_eval], ignore_index=True)
+        parts = [frame for frame in (seed_training, earlier_eval) if not frame.empty]
+        training = pd.concat(parts, ignore_index=True) if parts else earlier_eval.copy()
+        if not training.empty:
+            training = _coerce_goals(training)
         training["Date"] = pd.to_datetime(training["Date"])
         training = training.sort_values("Date").reset_index(drop=True)
 
@@ -230,8 +282,21 @@ def evaluate_period(
         if pd.to_datetime(training["available_at"], utc=True).max() > cutoff_utc:
             raise AssertionError("availability leakage: a training result was not available at prediction cutoff")
 
-        params = dc.fit_model(
-            training, xi=xi, reg=reg, verbose=False, as_of_date=cutoff
+        # Each predictor validates names against its own alias table (the dev
+        # candidate maps "manchester united" -> "Manchester United"), so feed it
+        # model-canonical names while prediction rows keep Stage 1 identifiers.
+        training = training.copy()
+        for column in ("HomeTeam", "AwayTeam"):
+            training[column] = training[column].map(model._team_name)
+        fold_xi, fold_reg = xi, reg
+        if tune:
+            # Hyperparameters chosen inside this training window only.
+            best_xi, best_reg, _, _ = model.tune_params(
+                training, verbose=False, as_of_date=cutoff
+            )
+            fold_xi, fold_reg = float(best_xi), float(best_reg)
+        params = model.fit_model(
+            training, xi=fold_xi, reg=fold_reg, verbose=False, as_of_date=cutoff
         )
         train_outcomes = np.vstack([
             dc._actual_outcome(int(row.FTHG), int(row.FTAG))
@@ -243,9 +308,10 @@ def evaluate_period(
         fold_count = 0
         for row in test.itertuples():
             home, away = row.HomeTeam, row.AwayTeam
-            prior_only = home not in params["attack"] or away not in params["attack"]
-            probs = dc._predict_outcome_probs(
-                params, home, away, allow_new_teams=True
+            model_home, model_away = model._team_name(home), model._team_name(away)
+            prior_only = model_home not in params["attack"] or model_away not in params["attack"]
+            probs = model._predict_outcome_probs(
+                params, model_home, model_away, allow_new_teams=True
             )
             actual = dc._actual_outcome(int(row.FTHG), int(row.FTAG))
             prediction_rows.append({
@@ -268,6 +334,8 @@ def evaluate_period(
                 "training_data_sha256": params["data_sha256"],
                 "model_version": params["model_version"],
                 "prior_only_team": bool(prior_only),
+                "xi": fold_xi,
+                "reg": fold_reg,
             })
             fold_count += 1
 
@@ -281,6 +349,8 @@ def evaluate_period(
             "test_max_date": str(test["Date"].max().date()),
             "fit_model_version": params["model_version"],
             "fit_data_sha256": params["data_sha256"],
+            "xi": fold_xi,
+            "reg": fold_reg,
         })
         print(f"{label} | {cutoff.date()} | train={len(training)} | test={fold_count}")
         cutoff = end
@@ -339,7 +409,14 @@ def main() -> int:
     parser.add_argument("--xi", type=float, default=0.0018)
     parser.add_argument("--reg", type=float, default=1.0)
     parser.add_argument("--output-dir", default="results/stage9_mle")
+    parser.add_argument("--model", choices=("v2.4.1", "dev"), default="v2.4.1",
+                        help="frozen reference or isolated dev robustness candidate")
+    parser.add_argument("--tune", action="store_true",
+                        help="choose xi/reg with tune_params inside each training window only")
+    parser.add_argument("--seasons", nargs="+", default=None,
+                        help="restrict the evaluation to these seasons (default: all imported)")
     args = parser.parse_args()
+    model = load_model_module(args.model)
 
     cutoff = datetime(9999, 12, 31, 23, 59, 59, tzinfo=timezone.utc)
     with PersistentDataStore(args.database) as store:
@@ -349,7 +426,9 @@ def main() -> int:
     if data.empty or "Season" not in data.columns:
         raise SystemExit("No imported results found. Run scripts/fetch_openfootball.py first.")
     data["Date"] = pd.to_datetime(data["Date"])
-    data = data.sort_values("Date").reset_index(drop=True)
+    if args.seasons:
+        data = data[data["Season"].isin(args.seasons)].copy()
+    data = _coerce_goals(data.sort_values("Date").reset_index(drop=True))
     dataset_validation = validate_historical_dataset(data)
     holdout = data[data["Season"] == args.holdout_season].copy()
     if holdout.empty:
@@ -361,19 +440,23 @@ def main() -> int:
 
     print(f"Dataset rows: {len(data)}; development: {len(development)}; holdout: {len(holdout)}")
     print(f"Database fingerprint: {fingerprint}")
-    print(f"Fixed parameters: xi={args.xi}, reg={args.reg}; no holdout tuning")
+    print(f"Model: {model.MODEL_VERSION}; " + (
+        "xi/reg tuned inside each training window" if args.tune
+        else f"fixed xi={args.xi}, reg={args.reg}") + "; no holdout tuning")
 
     development_report, development_rows = evaluate_period(
         development, pd.DataFrame(columns=development.columns),
         label="development_walk_forward",
         min_train_matches=args.min_train_matches,
         step_days=args.step_days, xi=args.xi, reg=args.reg,
+        model=model, tune=args.tune,
     )
     holdout_report, holdout_rows = evaluate_period(
         holdout, development,
         label=f"final_holdout_{args.holdout_season}",
         min_train_matches=args.min_train_matches,
         step_days=args.step_days, xi=args.xi, reg=args.reg,
+        model=model, tune=args.tune,
     )
 
     development_probs = _probability_matrix(
@@ -433,15 +516,16 @@ def main() -> int:
         "created_at_utc": datetime.now(timezone.utc).isoformat(),
         "database_fingerprint": fingerprint,
         "dataset_validation": dataset_validation,
-        "model_file": "alea_predictor_v2_4_1.py",
-        "model_version": dc.MODEL_VERSION,
+        "model_file": "alea_predictor_v2_4_1.py" if args.model == "v2.4.1" else "dev/alea_predictor_dev.py",
+        "model_version": model.MODEL_VERSION,
         "holdout_season": args.holdout_season,
         "protocol": {
             "split": "chronological expanding window; calendar dates kept together",
             "minimum_training_matches": args.min_train_matches,
             "test_block_days": args.step_days,
-            "xi": args.xi,
-            "reg": args.reg,
+            "xi": None if args.tune else args.xi,
+            "reg": None if args.tune else args.reg,
+            "per_fold_training_window_tuning": bool(args.tune),
             "hyperparameters_tuned_on_holdout": False,
             "unknown_team_policy": "league-average prior, flagged in prediction rows",
         },

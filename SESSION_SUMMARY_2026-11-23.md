@@ -1,3 +1,5 @@
+> **Superseded (24 Nov 2026):** see [ALEA_3.0_STATUS_REPORT_2026-11-24.md](ALEA_3.0_STATUS_REPORT_2026-11-24.md) for current, re-measured status. Kept for history only.
+
 # Session summary — 2026-11-23
 
 What this session actually did, in order. Nothing below was fabricated — every number came from either re-running the existing test suite or recomputing metrics directly from the raw rows in `results/`.

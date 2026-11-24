@@ -1,3 +1,5 @@
+> **Superseded (24 Nov 2026):** see [ALEA_3.0_STATUS_REPORT_2026-11-24.md](ALEA_3.0_STATUS_REPORT_2026-11-24.md) for current, re-measured status. Kept for history only.
+
 # ALEA 3.0 Development Report
 **Date:** 18 November 2026  
 **Scope:** Stages 0–7  

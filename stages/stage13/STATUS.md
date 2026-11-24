@@ -4,7 +4,11 @@
 
 The repair branch now contains first-pass implementations and tests for the missing stage modules, but final acceptance requires evidence from a real, reproducible production run and integration into a running service.
 
-## Current acceptance blockers
+## Update 24 Nov 2026
+
+See `ALEA_3.0_STATUS_REPORT_2026-11-24.md`. Blocker 1 is resolved: the production MLE walk-forward has run on 7 real seasons (holdout 2025-26) and its evidence is in `results/stage9_mle/`. Blocker 3 is resolved negatively: Elo/form were evaluated on identical fixtures and none was accepted. Blocker 4 is resolved: calibration was evaluated and is gated off. Blockers 5–7 (automation, service, operational reliability) remain open. Prospective forecasts are now recorded in `results/prospective/ledger.sqlite`.
+
+## Original acceptance blockers (21 Nov 2026)
 
 1. **Production MLE walk-forward has not yet run on the imported historical dataset.** The Stage 9 workflow has been added to fetch five OpenFootball Premier League seasons, run the v2.4.1 MLE in expanding windows, and save a report/prediction artifact. Until that workflow completes successfully, no new real-data result is claimed.
 2. **The walk-forward must respect information availability.** Training rows are now filtered by availability timestamp at or before prediction cutoff, not merely by match date. The regression suite includes a test for this.

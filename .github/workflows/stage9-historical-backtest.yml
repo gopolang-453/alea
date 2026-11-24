@@ -7,8 +7,12 @@ on:
     paths:
       - "scripts/fetch_openfootball.py"
       - "scripts/run_stage9_mle_backtest.py"
+      - "scripts/run_stage9_candidate_evaluation.py"
       - "stages/stage1/data_store.py"
+      - "stages/stage8/calibration.py"
+      - "stages/stage9/**"
       - "alea_predictor_v2_4_1.py"
+      - ".github/workflows/stage9-historical-backtest.yml"
 
 permissions:
   contents: read
@@ -29,17 +33,24 @@ jobs:
           cache: "pip"
       - name: Install dependencies
         run: python -m pip install --upgrade pip && pip install -r requirements-dev.txt
-      - name: Fetch and import five historical Premier League seasons
+      - name: Fetch and import seven historical Premier League seasons
         run: >-
           python scripts/fetch_openfootball.py
-          --seasons 2019-20 2020-21 2021-22 2022-23 2023-24
+          --seasons 2019-20 2020-21 2021-22 2022-23 2023-24 2024-25 2025-26
       - name: Run production Dixon-Coles MLE walk-forward and untouched holdout
         run: >-
           python scripts/run_stage9_mle_backtest.py
-          --holdout-season 2023-24
+          --holdout-season 2025-26
           --min-train-matches 380
-          --step-days 56
+          --step-days 28
           --output-dir results/stage9_mle
+      - name: Evaluate pre-registered Stage 9 challengers against the champion
+        run: >-
+          python scripts/run_stage9_candidate_evaluation.py
+          --champion-predictions results/stage9_mle/predictions.csv
+          --output-dir results/stage9_candidates
+      - name: Stage 12 recovery drill
+        run: python scripts/recovery_drill.py --report results/stage12/recovery_drill.json
       - name: Upload evaluation report, predictions and source manifests
         if: always()
         uses: actions/upload-artifact@v4
@@ -47,6 +58,8 @@ jobs:
           name: alea-stage9-mle-${{ github.run_id }}
           path: |
             results/stage9_mle/
+            results/stage9_candidates/
+            results/stage12/
             data/raw/openfootball/*.manifest.json
           if-no-files-found: warn
           retention-days: 30

@@ -1,3 +1,5 @@
+> **Superseded (24 Nov 2026):** see [ALEA_3.0_STATUS_REPORT_2026-11-24.md](ALEA_3.0_STATUS_REPORT_2026-11-24.md) for current, re-measured status. Kept for history only.
+
 # Stage 9 — Historical backtesting report
 **Date:** 18 November 2026  
 **Data:** 5 Premier League seasons (2019/20–2023/24), 1,900 matches from football-data.co.uk  

@@ -1,3 +1,5 @@
+> **Superseded (24 Nov 2026):** see [ALEA_3.0_STATUS_REPORT_2026-11-24.md](ALEA_3.0_STATUS_REPORT_2026-11-24.md) for current, re-measured status. Kept for history only.
+
 # ALEA 3.0 — End-to-end repair plan
 
 **Working branch:** `repair/alea-3.0-integrated`  

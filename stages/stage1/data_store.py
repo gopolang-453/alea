@@ -50,6 +50,19 @@ _ALIASES: Dict[str, str] = {
     "nottingham forest": "nottingham forest",
     "leicester": "leicester city",
     "ipswich": "ipswich town",
+    # football-data.co.uk short forms seen in the 2026-27 feed and earlier
+    # Premier League seasons; OpenFootball uses the long forms.
+    "hull": "hull city",
+    "coventry": "coventry city",
+    "leeds": "leeds united",
+    "luton": "luton town",
+    "norwich": "norwich city",
+    "west brom": "west bromwich albion",
+    "sheffield utd": "sheffield united",
+    "cardiff": "cardiff city",
+    "swansea": "swansea city",
+    "stoke": "stoke city",
+    "huddersfield": "huddersfield town",
 }
 
 
@@ -59,9 +72,12 @@ def canonical_team(name: str) -> str:
         raise ValueError(f"unreadable team name: {name!r}")
     key = " ".join(name.lower().strip().replace(".", "").replace("&", "and").split())
     parts = key.split()
-    if parts and parts[-1] == "fc":
+    # OpenFootball writes "Liverpool FC", "AFC Bournemouth", "Sunderland AFC",
+    # "Hull City AFC". Strip one club-type suffix/prefix so every source maps
+    # to the same identifier.
+    if len(parts) > 1 and parts[-1] in ("fc", "afc"):
         parts.pop()
-    if parts and parts[0] == "afc":
+    if len(parts) > 1 and parts[0] in ("afc", "fc"):
         parts.pop(0)
     key = " ".join(parts)
     return _ALIASES.get(key, key)
@@ -290,7 +306,7 @@ def ingest_csv(
         raise FileNotFoundError(path)
     frame = pd.read_csv(path, encoding="utf-8-sig")
     require_columns(frame, ["Date", "HomeTeam", "AwayTeam", "FTHG", "FTAG"])
-    parsed_dates = pd.to_datetime(frame["Date"], dayfirst=True, errors="coerce")
+    parsed_dates = parse_match_dates(frame["Date"])
     if parsed_dates.isna().any():
         bad_rows = frame.index[parsed_dates.isna()].tolist()
         raise DataValidationError(f"unreadable match dates at CSV rows: {bad_rows[:10]}")
@@ -302,6 +318,23 @@ def ingest_csv(
         source=source,
         available_offset_hours=available_offset_hours,
     )
+
+
+def parse_match_dates(values: pd.Series) -> pd.Series:
+    """Parse football-data (dd/mm/yyyy, dd/mm/yy) or ISO (yyyy-mm-dd) dates.
+
+    Each value must match one explicit format; ambiguous free-form parsing is
+    not used, so a changed upstream format fails closed instead of silently
+    swapping day and month.
+    """
+    text = values.astype("string").str.strip()
+    parsed = pd.Series(pd.NaT, index=values.index, dtype="datetime64[ns]")
+    for fmt in ("%d/%m/%Y", "%d/%m/%y", "%Y-%m-%d"):
+        missing = parsed.isna()
+        if not missing.any():
+            break
+        parsed.loc[missing] = pd.to_datetime(text[missing], format=fmt, errors="coerce")
+    return parsed
 
 
 # ---------------------------------------------------------------------------

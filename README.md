@@ -2,6 +2,8 @@
 
 A Dixon–Coles Poisson model for Premier League home / draw / away probabilities.
 
+**Current status (24 Nov 2026):** see [ALEA_3.0_STATUS_REPORT_2026-11-24.md](ALEA_3.0_STATUS_REPORT_2026-11-24.md). On a 7-season real-data walk-forward the frozen v2.4.1 champion scored 0.980 log-loss in development and 1.027 on the untouched 2025-26 holdout. No challenger beat it. Live pre-kickoff forecasts are recorded in `results/prospective/`.
+
 This is a forecasting prototype. It is not a betting system. Staking is off. A positive expected value in the value engine is not an edge.
 
 ## What is in this repository
