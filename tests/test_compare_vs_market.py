@@ -41,3 +41,35 @@ def test_report_has_ci_and_calibration(tmp_path):
     assert res["overall"]["n_week_blocks"] >= 2
     assert len(res["overall"]["diff_brier_ci95"]) == 2
     assert sum(b["n"] for b in res["calibration"]["market"]["bins"]) == 180
+
+
+def test_cli_requires_odds_argument(tmp_path, capsys):
+    import pytest
+    from scripts.compare_vs_market import main
+    with pytest.raises(SystemExit) as exc:
+        main(["--out-dir", str(tmp_path)])
+    assert exc.value.code == 2  # argparse: --odds is required, no tracked default
+
+
+def test_cli_missing_odds_file_fails_safely(tmp_path, capsys):
+    from scripts.compare_vs_market import main
+    out = tmp_path / "out"
+    assert main(["--odds", str(tmp_path / "absent.csv"), "--out-dir", str(out)]) == 2
+    assert "not found" in capsys.readouterr().err
+    assert not out.exists()
+
+
+def test_cli_rejects_wrong_columns_and_writes_aggregates_only(tmp_path, capsys):
+    from scripts.compare_vs_market import main
+    champ, odds = _files(tmp_path)
+    bad = tmp_path / "bad.csv"
+    pd.read_csv(odds).drop(columns=["p_market_draw"]).to_csv(bad, index=False)
+    assert main(["--champion", str(champ), "--odds", str(bad), "--out-dir", str(tmp_path / "x")]) == 2
+    out = tmp_path / "out"
+    assert main(["--champion", str(champ), "--odds", str(odds), "--out-dir", str(out)]) == 0
+    assert sorted(p.name for p in out.iterdir()) == ["champion_vs_market.json", "champion_vs_market.md"]
+    text = (out / "champion_vs_market.json").read_text() + (out / "champion_vs_market.md").read_text()
+    # No per-fixture rows: no team names or individual market probabilities.
+    assert "Home 1" not in text and "Away 1" not in text
+    first_p = f"{pd.read_csv(odds).p_market_home.iloc[0]:.6f}"
+    assert first_p not in text

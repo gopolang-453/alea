@@ -242,11 +242,12 @@ def run_ledger_drill(ledger: Path, scratch: Path, *, registry: Path, log_dirs=()
         dest = scratch / "tamper_dest.sqlite"
         shutil.copy2(restored, dest)
         before = dest.read_bytes()
+        from stages.stage12.reliability import ReliabilityError
         try:
             restore_ledger(bad, manifest, dest)
             return False
-        except Exception:
-            return dest.read_bytes() == before
+        except ReliabilityError as exc:  # only the intended refusal counts, not an unrelated crash
+            return "refusing to restore" in str(exc) and dest.read_bytes() == before
     attempt("restore_rejects_tampered", tampered)
 
     def history_loss():

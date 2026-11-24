@@ -28,7 +28,8 @@ REGISTRY = {
 
 def _pred(ledger, key=KEY, kickoff=KO, predicted=PRED_AT, p=(0.5, 0.3, 0.2), version="alea-dc-v2.4.1"):
     return ledger.record_prediction(fixture_key=key, predicted_at=predicted, kickoff_at=kickoff,
-                                    p_home=p[0], p_draw=p[1], p_away=p[2], model_version=version)
+                                    p_home=p[0], p_draw=p[1], p_away=p[2], model_version=version,
+                                    extra={"training_matches": 100})
 
 
 @pytest.fixture
@@ -231,7 +232,8 @@ def _settled_ledger(tmp_path, n_weeks=4, per_week=5, challenger_shift=0.0):
             _pred(led, key=key, kickoff=ko, predicted=ko - timedelta(days=3))
             led.record_challenger_prediction(model_id="c1", fixture_key=key, predicted_at=ko - timedelta(days=3),
                                              kickoff_at=ko, p_home=0.5 - challenger_shift,
-                                             p_draw=0.3, p_away=0.2 + challenger_shift, model_version="c1-v1")
+                                             p_draw=0.3, p_away=0.2 + challenger_shift, model_version="c1-v1",
+                                             extra={"training_matches": 100})
             hg, ag = int(rng.integers(0, 3)), int(rng.integers(0, 3))
             led.observe_and_settle(key, [("wikipedia", hg, ag, "r")], ko + timedelta(hours=3))
     return led

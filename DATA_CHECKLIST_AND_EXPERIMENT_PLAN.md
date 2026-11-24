@@ -4,7 +4,7 @@
 
 ## Why more data is needed
 
-`results/predictions_closing_odds.csv` and `results/predictions_closing_dev.csv` contain only the **1,140 evaluation matches** (11 Aug 2023 – 24 May 2026) with each fold's `n_train` count (e.g. 380, 381, ...) — but not the actual training-period match rows themselves. Those earlier matches are what every walk-forward fold trained on. Without them I can verify scoring (which I've done) but cannot refit either model from scratch, so I cannot test any genuinely new change (different `xi`/`reg`, Elo, calibration, etc.) — I'd just be re-describing the same stored predictions.
+`results/predictions_closing_odds.csv` and `results/predictions_closing_dev.csv` (these per-match odds files were removed from the repository on 24 Nov 2026 because football-data.co.uk does not permit redistribution; they are now held locally only, outside git — see `docs/ODDS_DATA_HISTORY_CLEANUP.md`) contain only the **1,140 evaluation matches** (11 Aug 2023 – 24 May 2026) with each fold's `n_train` count (e.g. 380, 381, ...) — but not the actual training-period match rows themselves. Those earlier matches are what every walk-forward fold trained on. Without them I can verify scoring (which I've done) but cannot refit either model from scratch, so I cannot test any genuinely new change (different `xi`/`reg`, Elo, calibration, etc.) — I'd just be re-describing the same stored predictions.
 
 ## Exact files needed
 

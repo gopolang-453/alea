@@ -76,3 +76,25 @@ Postponements are detected automatically: an isolated missing result while at le
   - Brier difference ≤ 0.
   - Meeting the rule only makes a challenger eligible for human review. Nothing is promoted automatically.
 - **Report:** settled, outstanding (by status), void and conflicting forecasts, plus the data-quality issues logged.
+
+## Pairing rules (final audit, 24 Nov 2026)
+
+A champion and challenger forecast count as a **pair** only if all of these hold:
+
+1. The fixture is settled (not void, postponed or in conflict).
+2. The champion row carries the registry's champion `model_version`.
+3. Both rows were made before the effective kickoff, which is the rescheduled kickoff if there is one.
+4. The challenger was fitted on the same information as the champion, meaning the same `training_matches`. This is read from the challenger row's `extra`, or from the run summary of its `run_id`. If it cannot be read, the pair is excluded as `information_set_unverifiable`; it is not assumed.
+
+The 300 minimum counts these pairs only. It does not count total forecasts, unsettled forecasts, or historical backtests. `evaluation.json` reports `settled_but_not_paired` together with the reason for each exclusion.
+
+- **Recording side:** the pipeline does not add a challenger to an existing champion forecast if the training set has changed since that forecast was made. It logs `challenger_not_recorded_information_changed` instead.
+- **Promotion criteria:** unchanged. The 2025-26 holdout already inspected is not used to tune or select any model.
+- **Metric formulas:** checked by hand in `tests/test_audit_regressions.py`.
+  - Log-loss: \(-\ln p_{y}\).
+  - Brier: \(\sum_k (p_k - o_k)^2\).
+  - RPS: \(\tfrac12\sum_{j=1}^{2}(\sum_{k\le j} p_k - o_k)^2\).
+  - Accuracy: the argmax.
+- **Bootstrap:** paired, and resampled over whole ISO weeks of candidate minus champion, giving percentile 95% CIs.
+
+Every Markdown report ends with a "Data sources and licences" section. It links CC BY-SA 4.0 for Wikipedia results and CC0 for OpenFootball fixtures.

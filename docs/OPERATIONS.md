@@ -81,13 +81,19 @@ python scripts/run_prospective_forecast.py --fetch-wikipedia \
 `.github/workflows/weekly-prospective-forecast.yml` runs Tuesday and Friday at 06:00 UTC, and on demand (`workflow_dispatch`, optionally `dry_run`). Each run:
 
 - checks out the code and the data branch `prospective-ledger`, which holds the live `ledger.sqlite` and its reports, so it never touches `main`;
+- snapshots the ledger before the run (`$RUNNER_TEMP/ledger_before.sqlite` and its SHA-256);
 - runs the pipeline, then the Stage 12 drill and the API smoke test against that ledger;
-- commits the ledger and reports to the data branch;
+- runs the **commit gate** `scripts/verify_ledger_update.py --before <snapshot> --after ledger.sqlite`. It fails if the new ledger is missing or corrupt, if any append-only trigger is missing, if integrity checks fail (duplicates, probability sums, orphans), or if any pre-existing row in any table changed or disappeared;
+- commits the ledger and reports to the data branch **only if** the run is live, the gate passed and the pipeline did not report a store failure (exit 3). Diagnostic reports are produced regardless, but they do not grant permission to commit. Files are staged from an explicit allowlist (`ledger.sqlite`, `report.md`, `evaluation.json`, `README.md`, `runs/`, `logs/`, `stage12/`); temporary, journal, WAL, pre-restore and secret-like names are refused;
 - uploads the reports, logs and a verified backup as a 90-day artifact.
 
 Failures are not hidden: any non-zero step writes a job summary, opens or updates the issue "ALEA prospective run failing", and fails the job.
 
 - **Schedules and manual runs only work from the default branch.** Until the workflow is merged to `main`, it runs once whenever the workflow file changes on a `repair/**` branch. After merge, start it manually with `gh workflow run weekly-prospective-forecast.yml`.
+- **Live versus dry runs.** A run is live only when it is scheduled, or a `workflow_dispatch` with `dry_run` unset, **on `refs/heads/main`**. Push-triggered runs on other branches, and dispatches with `dry_run`, are dry runs. The pipeline then works on a copy in `$RUNNER_TEMP`, the data checkout has no push credentials (`persist-credentials: false`), the commit step is skipped, and the gate also checks that the real checkout is byte-identical to the snapshot.
+- **Freshness rule.** The results feed is stale only if listed fixtures have been played since its latest result (plus the configured grace period). International breaks of up to three weeks therefore do not block the next round. The exemption has a hard ceiling of 576 h (24 days, longer than the longest scheduled gap of 503 h): beyond it the feed is stale regardless, so an incomplete fixture list cannot hide a dead feed. After the last round of the season, runs are blocked as stale (alert) until the next season is configured.
+- **Challengers on identical information.** A challenger row is recorded only for a champion forecast made in the same run, or in a run with the same number of training matches. Otherwise the pipeline logs `challenger_not_recorded_information_changed`. The evaluation also excludes any pair whose information set cannot be verified.
+- **`--crosscheck-csv` is refused inside GitHub Actions**, because its scores would be written to a published ledger.
 - **One writer.** The `concurrency` group allows a single writer, and a run in progress is never cancelled.
 
 ## Inspect history
@@ -105,7 +111,7 @@ The API endpoints listed in the next section give the same views.
 ```bash
 python scripts/serve_api.py --ledger ledger-data/ledger.sqlite --port 8080
 # or
-docker build -t alea-api . && docker run --rm -p 8080:8080 -v "$PWD/ledger-data:/data:ro" alea-api
+docker build -t alea-api . && docker run --rm -p 127.0.0.1:8080:8080 -v "$PWD/ledger-data:/data:ro" alea-api
 ```
 
 | Endpoint | Returns |
@@ -141,7 +147,7 @@ python scripts/ledger_admin.py --ledger ledger-data/ledger.sqlite restore backup
 **Restore:**
 
 - It verifies the hash, `PRAGMA integrity_check` and the fingerprint, then replaces the file atomically. The replaced file is kept as `*.pre-restore-<stamp>`.
-- It refuses a backup that lacks forecasts present in the current ledger. `--allow-history-loss` overrides this; it is a last resort.
+- It refuses a backup that lacks forecasts, or any row (outcomes, observations, events, corrections, runs), present in the current ledger. `--allow-history-loss` overrides this; it is a last resort.
 - Every scheduled run also uploads a verified backup as an artifact, and the data branch's git history is itself a full backup.
 
 ## Recovery
@@ -160,3 +166,16 @@ python scripts/ledger_admin.py --ledger ledger-data/ledger.sqlite restore backup
 ## Release
 
 See `RELEASE_READINESS_CHECKLIST.md`. Do not tag v3.0.0 while any row is still blocked.
+
+## Security
+
+- **Secrets.** The workflow uses only the built-in `GITHUB_TOKEN`, with `contents: write` and `issues: write`. Push credentials are persisted only in live runs. `scripts/security_check.py` and the drill scan for secret patterns, but such scans cannot prove that no secret is present.
+- **API.** The API is read-only. It opens the ledger with `mode=ro` and has no write, admin or debug endpoints. Errors never include paths or exception text. It does not read environment secrets.
+- **Not yet hardened.** Actions are pinned by tag, not SHA, and the base image is pinned by tag, not digest. The `prospective-ledger` branch has no branch protection; adding protection that only allows `github-actions[bot]` is an owner decision.
+
+## Limitations
+
+- **Not deployed.** No public deployment exists; see `docs/HOSTING_OPTIONS.md`.
+- **Not yet observed end to end.** No prospective match has been settled yet. The first forecasts kick off on 28 Nov 2026.
+- **Local drill only.** The recovery drill runs on the runner and on local copies. It does not demonstrate production reliability of a deployed service.
+- **Single source.** Current-season results come from a single crowd-edited source (Wikipedia). Conflicts with a second source are detected only when a second source is supplied locally.

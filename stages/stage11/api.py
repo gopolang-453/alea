@@ -36,6 +36,15 @@ log = logging.getLogger("alea.api")
 API_VERSION = "1.0"
 _STATUSES = {"settled", "void", "conflict", "pending", "overdue", "postponed", "abandoned"}
 _TEAM = re.compile(r"^[a-z0-9 .'&-]{2,60}$")
+# Shown on every data response: result observations are derived from Wikipedia
+# (CC BY-SA 4.0, attribution + share-alike), fixtures from OpenFootball (CC0).
+DATA_ATTRIBUTION = {
+    "forecasts": "ALEA model output (alea-dc-v2.4.1 champion; registered challengers)",
+    "results": ("Wikipedia contributors, '2026\u201327 Premier League', CC BY-SA 4.0 "
+                "(https://creativecommons.org/licenses/by-sa/4.0/); per-run revision ids in /v1/status"),
+    "fixtures": "OpenFootball football.json, CC0 1.0 (https://github.com/openfootball/football.json)",
+    "licensing_notes": "See docs/DATA_SOURCES_AND_LICENSING.md. Not legal advice; commercial use needs review.",
+}
 
 
 class ApiError(Exception):
@@ -120,13 +129,17 @@ class ForecastAPI:
         try:
             return json.loads(self.registry_path.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError) as exc:
-            raise ApiError(503, "registry_unavailable", f"model registry unreadable: {exc}")
+            log.error("model registry unreadable: %s", exc)  # details (paths) stay in the server log
+            raise ApiError(503, "registry_unavailable", "model registry unreadable")
 
     def _open(self) -> ProspectiveLedger:
         try:
             return ProspectiveLedger(self.ledger_path, read_only=True)
         except LedgerError as exc:
-            raise ApiError(503, "ledger_unavailable", str(exc))
+            log.error("ledger unavailable: %s", exc)
+            missing = "not found" in str(exc)
+            raise ApiError(503, "ledger_unavailable",
+                           "ledger database not found" if missing else "ledger database unreadable or corrupt")
 
     def _checks(self, ledger: ProspectiveLedger, registry: Dict[str, Any]) -> Dict[str, Any]:
         problems, warnings = [], []
@@ -135,7 +148,8 @@ class ForecastAPI:
             if sha256_file(self.root / champ["module"]) != champ["module_sha256"]:
                 problems.append("frozen champion file does not match registered hash")
         except Exception as exc:  # missing file etc.
-            problems.append(f"cannot verify champion file: {exc}")
+            log.error("cannot verify champion file: %s", exc)
+            problems.append("cannot verify frozen champion file")
         integrity = ledger.integrity_report()
         if not integrity["ok"]:
             problems.extend(integrity["problems"])
@@ -216,6 +230,7 @@ class ForecastAPI:
         ledger, registry, checks = self._serving_ledger()
         with ledger:
             return 200, {"api_version": API_VERSION, "champion": registry["champion"],
+                         "attribution": DATA_ATTRIBUTION,
                          "challengers": [c["model_id"] for c in registry.get("challengers", [])],
                          "health": checks["status"], "warnings": checks["warnings"],
                          "data_freshness": checks["freshness"], "ledger": checks["integrity"],
@@ -242,7 +257,7 @@ class ForecastAPI:
                     item["challengers"] = by_key.get(item["fixture_key"], [])
         return 200, {"generated_at": now.isoformat(), "champion": registry["champion"]["model_version"],
                      "window_days": days, "count": len(items), "data_freshness": checks["freshness"],
-                     "warnings": checks["warnings"], "predictions": items,
+                     "warnings": checks["warnings"], "predictions": items, "attribution": DATA_ATTRIBUTION,
                      "note": "Kickoff times are listed (OpenFootball) times and may differ from the actual kickoff."}
 
     def history(self, params):
@@ -275,7 +290,7 @@ class ForecastAPI:
                     continue
                 items.append(self._forecast(p, st))
         return 200, {"total": len(items), "limit": limit, "offset": offset,
-                     "predictions": items[offset:offset + limit]}
+                     "predictions": items[offset:offset + limit], "attribution": DATA_ATTRIBUTION}
 
     def one(self, key: str):
         try:
@@ -293,6 +308,7 @@ class ForecastAPI:
                                     "probabilities": {"home": c["p_home"], "draw": c["p_draw"], "away": c["p_away"]}}
                                    for c in ledger.challenger_predictions() if c["fixture_key"] == key]
             item["events"] = ledger.events(key)
+            item["attribution"] = DATA_ATTRIBUTION
         return 200, item
 
     def evaluation(self, params):
@@ -301,6 +317,7 @@ class ForecastAPI:
             ev = evaluate_ledger(ledger, registry, self.clock())
         for k in ("settled", "outstanding", "events", "data_quality_issues"):
             ev[f"{k}_count"] = len(ev.pop(k))
+        ev["attribution"] = DATA_ATTRIBUTION
         return 200, ev
 
     def metrics_text(self) -> str:

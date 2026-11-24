@@ -1,7 +1,7 @@
-ALEA test run  2026-11-24T15:52:44  python 3.14.8
+ALEA test run  2026-11-24T18:34:14  python 3.14.8
 
 ==============================================================================
-test_01_D1_rounded_probabilities.py   [script]   PASS   1.4s
+test_01_D1_rounded_probabilities.py   [script]   PASS   2.0s
 ==============================================================================
 v0.1 file not present - 'before' skipped
 AFTER  v0.2: rejected 0/56;  largest rounding error absorbed 1.0e-04;  largest EV difference vs full-precision matrix 1.9e-04
@@ -26,7 +26,7 @@ PASS
 
 
 ==============================================================================
-test_04_strict_data_validation.py   [script]   PASS   6.1s
+test_04_strict_data_validation.py   [script]   PASS   14.2s
 ==============================================================================
 case                             v2.3.1 fit     v2.4 fit   v2.4 clean_matches
 duplicate fixture (identical)    n/a            REFUSED    dropped: duplicate fixture (identical copy)
@@ -49,7 +49,7 @@ PASS
 
 
 ==============================================================================
-test_05_date_grouped_backtest.py   [script]   PASS   20.0s
+test_05_date_grouped_backtest.py   [script]   PASS   43.9s
 ==============================================================================
 AFTER  v2.4:   0/23 folds share a date (train_max < test_min checked on every fold); calendar blocks of 14 days; no date appears in both training and test
 AFTER  v2.4:   shared a calendar date in 0/40 schedules
@@ -57,7 +57,7 @@ PASS
 
 
 ==============================================================================
-test_06_score_grid.py   [script]   PASS   1.3s
+test_06_score_grid.py   [script]   PASS   1.6s
 ==============================================================================
   lam   mu | tail cap8     tail cap15 | grid sum cap15 | markets depend on grid size?
   1.4  1.1 |  1.87e-05     2.87e-12 | 0.999999999997 | no (closed form)
@@ -69,20 +69,20 @@ PASS
 
 
 ==============================================================================
-test_07_versioned_model_files.py   [script]   PASS   1.4s
+test_07_versioned_model_files.py   [script]   PASS   1.9s
 ==============================================================================
-  Saved model (alea-dc-v2.4.1, fitted 2026-11-24T15:53:14, data 0ed5194e38bfb49c) to ./alea_model_alea-dc-v2.4.1.json
+  Saved model (alea-dc-v2.4.1, fitted 2026-11-24T18:35:18, data 0ed5194e38bfb49c) to ./alea_model_alea-dc-v2.4.1.json
 v2.4 default file: ./alea_model_alea-dc-v2.4.1.json
-  Loaded model alea-dc-v2.4.1, fitted 2026-11-24T15:53:14, trained on 463 matches through 2024-09-01
-  Saved model (alea-dc-v2.4, fitted 2026-11-24T15:53:14, data 0ed5194e38bfb49c) to ./alea_model_alea-dc-v2.4.json
+  Loaded model alea-dc-v2.4.1, fitted 2026-11-24T18:35:18, trained on 463 matches through 2024-09-01
+  Saved model (alea-dc-v2.4, fitted 2026-11-24T18:35:18, data 0ed5194e38bfb49c) to ./alea_model_alea-dc-v2.4.json
 loading another version's file -> ./alea_model_alea-dc-v2.4.json was written by 'alea-dc-v2.4' but this code is 'a ...
-  Loaded model alea-dc-v2.4, fitted 2026-11-24T15:53:14, trained on 463 matches through 2024-09-01
+  Loaded model alea-dc-v2.4, fitted 2026-11-24T18:35:18, trained on 463 matches through 2024-09-01
 invalid (mathematically broken) model file refused on load
 PASS
 
 
 ==============================================================================
-test_08_roi_confidence_interval.py   [script]   PASS   3.1s
+test_08_roi_confidence_interval.py   [script]   PASS   4.6s
 ==============================================================================
 a) true ROI +5.0%: 95% interval contained it in 140/150 = 93.3% of simulated samples
 b) true ROI 0.0%: interval included zero in 145/150 = 96.7% of samples
@@ -95,7 +95,7 @@ PASS
 
 
 ==============================================================================
-test_09_odds_timing_alignment.py   [script]   PASS   94.8s
+test_09_odds_timing_alignment.py   [script]   PASS   209.0s
 ==============================================================================
 a) Sat/Sun/Mon -> preceding Friday, Fri -> same day, Tue/Wed/Thu -> Tuesday; closing odds -> match day
 c) a date-grouped but UNALIGNED backtest would compare 27/400 matches (7%) against odds that were observed before some of the training results existed
@@ -108,7 +108,7 @@ PASS
 
 
 ==============================================================================
-test_10_new_team_priors.py   [script]   PASS   24.0s
+test_10_new_team_priors.py   [script]   PASS   52.6s
 ==============================================================================
 2) two prior-only teams: expected goals 1.519 - 1.232  (league actual 1.455 - 1.246)
 3) 1320 new-team pairings across 30 leagues: 0 errors, rho had to be clipped for 0 of them
@@ -123,7 +123,7 @@ PASS
 
 
 ==============================================================================
-test_11_regression_pairing_validity.py   [script]   PASS   26.5s
+test_11_regression_pairing_validity.py   [script]   PASS   48.0s
 ==============================================================================
 v2.2 file not found - comparison skipped
 v2.4 fits with >=1 invalid pairing: 0/40
@@ -131,7 +131,7 @@ PASS
 
 
 ==============================================================================
-test_12_regression_shrinkage_vs_truth.py   [script]   PASS   47.7s
+test_12_regression_shrinkage_vs_truth.py   [script]   PASS   110.9s
 ==============================================================================
   reg  log loss  mean|p-p_true|  mean top prob
   0.0    1.0610          0.2722          0.561
@@ -142,7 +142,7 @@ PASS
 
 
 ==============================================================================
-test_12b_regression_intercept_bias.py   [script]   PASS   11.8s
+test_12b_regression_intercept_bias.py   [script]   PASS   25.1s
 ==============================================================================
   reg    v2.4 pred   actual    bias
   0.0        1.389    1.392   -0.2%
@@ -153,7 +153,7 @@ PASS
 
 
 ==============================================================================
-test_13_regression_tuning_freshness_fullrun.py   [script]   PASS   79.6s
+test_13_regression_tuning_freshness_fullrun.py   [script]   PASS   187.4s
 ==============================================================================
 
 --- tune_params skips a failing candidate ---
@@ -201,7 +201,7 @@ Fitting Dixon-Coles on 390 matches, 12 teams (xi=0.005, reg=8.0) ...
   Done.  home_adv=0.226   rho=0.143  (valid range -0.300..0.300, smallest correction factor over all pairings = 0.689)
   No HC/AC columns in data - corners model skipped.
 
-init time 3.7s
+init time 9.0s
   model alea-dc-v2.4.1  |  390 matches, 2024-08-10 -> 2026-10-19  |  xi=0.005  reg=8.0
   WARNING: 29 matches dated on/before 2026-11-24 have NO result in the source (latest: 2026-11-23). The upstream file is probably behind real results - predictions only use matches through 2026-10-19.
   WARNING: Newest result in the data is 36 days old (2026-10-19). An international break can explain ~2 weeks; more than that means the source is lagging.
@@ -257,7 +257,7 @@ Calibration:
 0.4-0.5  91          0.446          0.374
 0.5-0.6  24          0.528          0.333
 0.6-0.7   4          0.628          0.250
-backtest time 73.4s
+backtest time 174.0s
 model_rps 0.2474
 baseline_train_rate_rps 0.2416
 model_log_loss 1.1115
@@ -267,7 +267,7 @@ ALL OK
 
 
 ==============================================================================
-test_14_cutoff_enforcement.py   [script]   PASS   99.9s
+test_14_cutoff_enforcement.py   [script]   PASS   217.7s
 ==============================================================================
 data: 600 matches; cutoff 2024-05-18: 399 eligible (before it), 201 on/after it
 0) neither / both cutoff arguments -> ValueError (a historical fit cannot forget its cutoff)
@@ -343,7 +343,7 @@ PASS
 
 
 ==============================================================================
-test_15_exact_score_probabilities.py   [script]   PASS   4.0s
+test_15_exact_score_probabilities.py   [script]   PASS   5.7s
 ==============================================================================
 1) cap 8, lam 4.0, mu 1.5: grid sums to 0.978609, tail 0.021391, sum + tail - 1 = -3.3e-16; cells equal tau x Poisson x Poisson exactly
    source check (AST of the code, not the docstring): score_matrix has no in-place division, no clip, no sum
@@ -365,45 +365,52 @@ PASS
 
 
 ==============================================================================
-test_compare_vs_market.py   [pytest]   PASS   1.4s
+test_audit_regressions.py   [pytest]   PASS   20.3s
+==============================================================================
+..................                                                       [100%]
+18 passed in 19.72s
+
+
+==============================================================================
+test_compare_vs_market.py   [pytest]   PASS   2.1s
+==============================================================================
+.....                                                                    [100%]
+5 passed in 1.69s
+
+
+==============================================================================
+test_ledger_admin.py   [pytest]   PASS   0.5s
 ==============================================================================
 ..                                                                       [100%]
-2 passed in 1.02s
+2 passed in 0.06s
 
 
 ==============================================================================
-test_ledger_admin.py   [pytest]   PASS   0.3s
-==============================================================================
-..                                                                       [100%]
-2 passed in 0.04s
-
-
-==============================================================================
-test_live_sources.py   [pytest]   PASS   0.7s
+test_live_sources.py   [pytest]   PASS   0.9s
 ==============================================================================
 ........                                                                 [100%]
-8 passed in 0.30s
+8 passed in 0.34s
 
 
 ==============================================================================
-test_prospective_ledger_v2.py   [pytest]   PASS   1.3s
+test_prospective_ledger_v2.py   [pytest]   PASS   1.7s
 ==============================================================================
 ......................                                                   [100%]
-22 passed in 0.77s
+22 passed in 1.22s
 
 
 ==============================================================================
-test_prospective_pipeline.py   [pytest]   PASS   11.5s
+test_prospective_pipeline.py   [pytest]   PASS   12.8s
 ==============================================================================
 .................                                                        [100%]
-17 passed in 10.86s
+17 passed in 12.26s
 
 
 ==============================================================================
 test_stage10_champion_comparison.py   [pytest]   PASS   1.3s
 ==============================================================================
 ............                                                             [100%]
-12 passed in 0.77s
+12 passed in 0.75s
 
 
 ==============================================================================
@@ -414,24 +421,24 @@ test_stage10_registry.py   [pytest]   PASS   0.3s
 
 
 ==============================================================================
-test_stage11_api.py   [pytest]   PASS   3.2s
+test_stage11_api.py   [pytest]   PASS   3.3s
 ==============================================================================
-....................                                                     [100%]
-20 passed in 2.65s
+..................................                                       [100%]
+34 passed in 2.71s
 
 
 ==============================================================================
-test_stage11_prediction_service.py   [pytest]   PASS   1.4s
+test_stage11_prediction_service.py   [pytest]   PASS   1.3s
 ==============================================================================
 ......                                                                   [100%]
-6 passed in 0.74s
+6 passed in 0.73s
 
 
 ==============================================================================
-test_stage12_ledger_ops.py   [pytest]   PASS   3.4s
+test_stage12_ledger_ops.py   [pytest]   PASS   3.3s
 ==============================================================================
-.....                                                                    [100%]
-5 passed in 2.89s
+......                                                                   [100%]
+6 passed in 2.79s
 
 
 ==============================================================================
@@ -452,42 +459,42 @@ test_stage12_reliability.py   [pytest]   PASS   0.3s
 test_stage1_data_store.py   [pytest]   PASS   0.7s
 ==============================================================================
 ........                                                                 [100%]
-8 passed in 0.25s
+8 passed in 0.27s
 
 
 ==============================================================================
-test_stage1_openfootball_team_aliases.py   [pytest]   PASS   0.7s
+test_stage1_openfootball_team_aliases.py   [pytest]   PASS   0.6s
 ==============================================================================
 .                                                                        [100%]
-1 passed in 0.22s
+1 passed in 0.23s
 
 
 ==============================================================================
-test_stage1_persistent_store.py   [pytest]   PASS   0.7s
+test_stage1_persistent_store.py   [pytest]   PASS   0.6s
 ==============================================================================
 ..........                                                               [100%]
-10 passed in 0.24s
+10 passed in 0.25s
 
 
 ==============================================================================
 test_stage1_real_feed_regressions.py   [pytest]   PASS   1.3s
 ==============================================================================
 ........                                                                 [100%]
-8 passed in 0.76s
+8 passed in 0.75s
 
 
 ==============================================================================
-test_stage2_exact_markets.py   [pytest]   PASS   1.0s
+test_stage2_exact_markets.py   [pytest]   PASS   0.9s
 ==============================================================================
 .........                                                                [100%]
-9 passed in 0.56s
+9 passed in 0.55s
 
 
 ==============================================================================
-test_stage2_parity.py   [pytest]   PASS   1.3s
+test_stage2_parity.py   [pytest]   PASS   1.2s
 ==============================================================================
 ......                                                                   [100%]
-6 passed in 0.73s
+6 passed in 0.71s
 
 
 ==============================================================================
@@ -498,10 +505,10 @@ test_stage3_team_features.py   [pytest]   PASS   0.6s
 
 
 ==============================================================================
-test_stage4_5_6_feature_safety.py   [pytest]   PASS   0.7s
+test_stage4_5_6_feature_safety.py   [pytest]   PASS   0.6s
 ==============================================================================
 ....                                                                     [100%]
-4 passed in 0.22s
+4 passed in 0.21s
 
 
 ==============================================================================
@@ -515,35 +522,35 @@ test_stage7_ensemble_safety.py   [pytest]   PASS   0.3s
 test_stage8_calibration.py   [pytest]   PASS   0.7s
 ==============================================================================
 ...                                                                      [100%]
-3 passed in 0.31s
+3 passed in 0.32s
 
 
 ==============================================================================
-test_stage9_candidates.py   [pytest]   PASS   1.1s
+test_stage9_candidates.py   [pytest]   PASS   1.0s
 ==============================================================================
 ........                                                                 [100%]
-8 passed in 0.58s
+8 passed in 0.59s
 
 
 ==============================================================================
-test_stage9_compare_runs.py   [pytest]   PASS   1.5s
+test_stage9_compare_runs.py   [pytest]   PASS   1.4s
 ==============================================================================
 ...                                                                      [100%]
-3 passed in 0.78s
+3 passed in 0.75s
 
 
 ==============================================================================
-test_stage9_mle_runner.py   [pytest]   PASS   1.4s
+test_stage9_mle_runner.py   [pytest]   PASS   1.5s
 ==============================================================================
 .....                                                                    [100%]
-5 passed in 0.82s
+5 passed in 0.83s
 
 
 ==============================================================================
-test_stage9_prospective_forecast.py   [pytest]   PASS   1.4s
+test_stage9_prospective_forecast.py   [pytest]   PASS   1.3s
 ==============================================================================
 .......                                                                  [100%]
-7 passed in 0.78s
+7 passed in 0.75s
 
 
 ==============================================================================
@@ -554,4 +561,4 @@ test_stage9_prospective_ledger.py   [pytest]   PASS   0.3s
 
 
 ============================================================
-43/43 test files passed
+44/44 test files passed

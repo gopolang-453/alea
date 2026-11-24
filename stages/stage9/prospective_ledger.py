@@ -646,15 +646,35 @@ class ProspectiveLedger:
                 problems.append(f"{p['fixture_key']}: probabilities do not sum to 1")
             if _parse(p["predicted_at"]) >= _parse(p["kickoff_at"]):
                 problems.append(f"{p['fixture_key']}: predicted at/after kickoff")
+        identities: Dict[Tuple[str, str, str], str] = {}
+        for p in preds:
+            try:
+                ident = match_identity(p["fixture_key"])
+            except LedgerError as exc:
+                problems.append(str(exc))
+                continue
+            if ident in identities:
+                problems.append(f"{p['fixture_key']}: duplicate forecast for the match already "
+                                f"forecast as {identities[ident]}")
+            identities.setdefault(ident, p["fixture_key"])
+        champion_keys = {p["fixture_key"] for p in preds}
         for c in self.challenger_predictions():
             if _parse(c["predicted_at"]) >= _parse(c["kickoff_at"]):
                 problems.append(f"{c['fixture_key']}/{c['model_id']}: predicted at/after kickoff")
+            if abs(c["p_home"] + c["p_draw"] + c["p_away"] - 1) > 1e-6:
+                problems.append(f"{c['fixture_key']}/{c['model_id']}: probabilities do not sum to 1")
+            if c["fixture_key"] not in champion_keys:
+                problems.append(f"{c['fixture_key']}/{c['model_id']}: no champion forecast for this fixture")
         for o in [dict(r) for r in self._conn.execute("SELECT * FROM outcomes")]:
             if o["outcome"] != outcome_label(o["home_goals"], o["away_goals"]):
                 problems.append(f"{o['fixture_key']}: outcome label inconsistent with score")
         triggers = {r[0] for r in self._conn.execute("SELECT name FROM sqlite_master WHERE type='trigger'")}
-        expected = {f"{t}_no_{a}" for t in _APPEND_ONLY_TABLES for a in ("update", "delete")}
+        expected = {f"{t}_no_{a}" for t in _APPEND_ONLY_TABLES if self._has_table(t)
+                    for a in ("update", "delete")}
         missing = sorted(expected - triggers)
+        # Read-only consumers (API, backups of legacy files) cannot write; the
+        # commit gate (stages/stage12/ledger_ops.verify_append_only_update)
+        # checks the triggers explicitly for any ledger that will be published.
         if missing and not self.read_only:
             problems.append(f"append-only triggers missing: {missing}")
         return {

@@ -6,9 +6,12 @@ name: ALEA weekly prospective forecast
 # data branch, runs the Stage 12 drill + API smoke test against that real
 # ledger, uploads reports/logs and opens an issue on any failure.
 #
-# NOTE: GitHub only fires `schedule` and `workflow_dispatch` for workflows on
-# the default branch. Before merge, pushing a change to this file on a
-# repair/** branch runs it once (a real, idempotent run on the data branch).
+# Write permission is separated from diagnostics: the ledger is committed only
+# if scripts/verify_ledger_update.py confirms that the updated file passes the
+# integrity report and preserves every pre-existing row (append-only), however
+# the pipeline, drill or API checks ended. Only scheduled runs and manual runs
+# on main with dry_run=false write; push-triggered runs on repair/** branches
+# are always dry runs on a copy, with no push credentials.
 
 on:
   schedule:
@@ -35,6 +38,8 @@ concurrency:
 env:
   DATA_BRANCH: prospective-ledger
   LEDGER_DIR: ledger-data
+  # Live (writing) mode only for schedule / manual dispatch on main without dry_run.
+  LIVE: ${{ github.ref == 'refs/heads/main' && (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && !inputs.dry_run)) }}
 
 jobs:
   forecast:
@@ -50,11 +55,16 @@ jobs:
           ref: ${{ env.DATA_BRANCH }}
           path: ${{ env.LEDGER_DIR }}
           fetch-depth: 1
+          # Dry runs get no push credentials, so they physically cannot write.
+          persist-credentials: ${{ env.LIVE == 'true' }}
 
       - name: Verify the ledger exists (never create silently)
         run: |
           test -f "$LEDGER_DIR/ledger.sqlite" || { echo "::error::ledger.sqlite missing on $DATA_BRANCH; restore it (docs/OPERATIONS.md#restore)"; exit 3; }
-          sha256sum "$LEDGER_DIR/ledger.sqlite" | tee ledger_before.sha256
+          sha256sum "$LEDGER_DIR/ledger.sqlite" | tee "$RUNNER_TEMP/ledger_before.sha256"
+          # Pre-run snapshot outside the data directory: the commit gate compares against it.
+          cp -p "$LEDGER_DIR/ledger.sqlite" "$RUNNER_TEMP/ledger_before.sqlite"
+          echo "Mode: $([ "$LIVE" = true ] && echo live || echo dry-run)"
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -71,6 +81,7 @@ jobs:
         run: sha256sum -c SHA256SUMS.txt
 
       - name: Retrieve permitted data (OpenFootball CC0)
+        id: retrieve
         run: |
           set -euo pipefail
           python scripts/fetch_openfootball.py --seasons 2019-20 2020-21 2021-22 2022-23 2023-24 2024-25 2025-26
@@ -81,7 +92,7 @@ jobs:
             https://raw.githubusercontent.com/openfootball/football.json/master/2026-27/en.1.json
 
       - name: Prepare dry-run copy
-        if: ${{ inputs.dry_run }}
+        if: ${{ env.LIVE != 'true' }}
         run: |
           mkdir -p dry && cp -a "$LEDGER_DIR/." dry/ && rm -rf dry/.git
           echo "LEDGER_DIR=dry" >> "$GITHUB_ENV"
@@ -121,15 +132,40 @@ jobs:
           echo "exit_code=$ok" >> "$GITHUB_OUTPUT"
           exit 0
 
+      - name: Verify the updated ledger (commit gate)
+        id: verify
+        if: ${{ always() && steps.pipeline.outcome == 'success' }}
+        run: |
+          set +e
+          python scripts/verify_ledger_update.py --before "$RUNNER_TEMP/ledger_before.sqlite" \
+            --after "$LEDGER_DIR/ledger.sqlite" --report verify_ledger_update.json
+          code=$?
+          if [ "$LIVE" != true ]; then
+            # A dry run must leave the real checkout byte-identical.
+            sha256sum -c "$RUNNER_TEMP/ledger_before.sha256" || code=1
+          fi
+          echo "exit_code=$code" >> "$GITHUB_OUTPUT"
+          exit 0
+
       - name: Commit ledger and reports to the data branch
-        if: ${{ !inputs.dry_run }}
+        id: commit
+        if: ${{ env.LIVE == 'true' && steps.verify.outputs.exit_code == '0' && steps.pipeline.outputs.exit_code != '3' }}
         working-directory: ${{ env.LEDGER_DIR }}
         run: |
+          set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
+          # Explicit allowlist: never `git add -A`.
+          for path in ledger.sqlite report.md evaluation.json README.md runs logs stage12; do
+            if [ -e "$path" ]; then git add -- "$path"; fi
+          done
+          if git diff --cached --name-only | grep -E '(\.tmp$|-journal$|-wal$|-shm$|pre-restore|\.env$|secret|token)'; then
+            echo "::error::refusing to commit temporary, journal or secret-looking files"; exit 1
+          fi
+          unexpected=$(git status --porcelain --untracked-files=all | grep -v '^[AM] ' || true)
+          if [ -n "$unexpected" ]; then echo "::warning::not committed (outside allowlist): $unexpected"; fi
           if git diff --cached --quiet; then echo "No ledger changes"; exit 0; fi
-          git commit -m "Prospective run ${{ github.run_id }} (pipeline exit ${{ steps.pipeline.outputs.exit_code }})"
+          git commit -m "Prospective run ${{ github.run_id }} (pipeline exit ${{ steps.pipeline.outputs.exit_code }}, ledger verified)"
           git push origin "HEAD:$DATA_BRANCH"
 
       - name: Upload reports, logs and verified backup
@@ -146,6 +182,7 @@ jobs:
             ${{ env.LEDGER_DIR }}/stage12/
             backups/
             pipeline_stdout.json
+            verify_ledger_update.json
             api_health.json
             api.log
 
@@ -153,26 +190,44 @@ jobs:
         if: always()
         run: |
           {
-            echo "## ALEA prospective run"
-            echo "| Step | Exit code |"; echo "|---|---|"
-            echo "| pipeline (0 ok, 2 blocked by gate, 3 ledger failure) | ${{ steps.pipeline.outputs.exit_code }} |"
+            echo "## ALEA prospective run ($([ "$LIVE" = true ] && echo live || echo dry run))"
+            echo "| Step | Result |"; echo "|---|---|"
+            echo "| data retrieval | ${{ steps.retrieve.outcome }} |"
+            echo "| pipeline (0 ok, 1 failed, 2 blocked by gate, 3 ledger failure) | ${{ steps.pipeline.outputs.exit_code }} |"
+            echo "| ledger commit gate (0 = safe to commit) | ${{ steps.verify.outputs.exit_code }} |"
+            echo "| commit to data branch | ${{ steps.commit.outcome }} |"
             echo "| Stage 12 drill | ${{ steps.drill.outputs.exit_code }} |"
             echo "| API smoke test | ${{ steps.api.outputs.exit_code }} |"
             echo
-            [ -f "$LEDGER_DIR/report.md" ] && cat "$LEDGER_DIR/report.md"
+            if [ -f "$LEDGER_DIR/report.md" ]; then cat "$LEDGER_DIR/report.md"; fi
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Alert on failure (open or update issue)
-        if: ${{ failure() || steps.pipeline.outputs.exit_code != '0' || steps.drill.outputs.exit_code != '0' || steps.api.outputs.exit_code != '0' }}
+        if: ${{ failure() || steps.pipeline.outputs.exit_code != '0' || steps.verify.outputs.exit_code != '0' || steps.drill.outputs.exit_code != '0' || steps.api.outputs.exit_code != '0' }}
         env:
           GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           title="ALEA prospective run failing"
-          body="Run ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}: pipeline=${{ steps.pipeline.outputs.exit_code }}, drill=${{ steps.drill.outputs.exit_code }}, api=${{ steps.api.outputs.exit_code }}. See docs/OPERATIONS.md (Recovery)."
+          reason=$(python -c "import json; d=json.load(open('pipeline_stdout.json')); print(d.get('status'), '-', d.get('reason') or '')" 2>/dev/null || echo "pipeline output unavailable")
+          gate=$(python -c "import json; d=json.load(open('verify_ledger_update.json')); print('ok' if d['ok'] else '; '.join(d['problems'])[:600])" 2>/dev/null || echo "not run")
+          {
+            echo "Run: $RUN_URL ($([ "$LIVE" = true ] && echo live || echo dry run), event ${{ github.event_name }}, ref ${{ github.ref_name }})"
+            echo
+            echo "- data retrieval: ${{ steps.retrieve.outcome }}"
+            echo "- pipeline exit ${{ steps.pipeline.outputs.exit_code }}: $reason"
+            echo "- ledger commit gate: $gate"
+            echo "- commit: ${{ steps.commit.outcome }}"
+            echo "- drill exit ${{ steps.drill.outputs.exit_code }}, API exit ${{ steps.api.outputs.exit_code }}"
+            echo
+            echo "The ledger is only committed when the commit gate is ok. See docs/OPERATIONS.md (Recovery); logs are in the run artifact."
+          } > alert.md
           num=$(gh issue list --repo "${{ github.repository }}" --state open --search "in:title \"$title\"" --json number --jq '.[0].number')
-          if [ -n "$num" ]; then gh issue comment "$num" --repo "${{ github.repository }}" --body "$body"
-          else gh issue create --repo "${{ github.repository }}" --title "$title" --body "$body"; fi
+          if [ -n "$num" ]; then gh issue comment "$num" --repo "${{ github.repository }}" --body-file alert.md
+          else gh issue create --repo "${{ github.repository }}" --title "$title" --body-file alert.md; fi
 
       - name: Fail the job if any check failed
-        if: ${{ steps.pipeline.outputs.exit_code != '0' || steps.drill.outputs.exit_code != '0' || steps.api.outputs.exit_code != '0' }}
-        run: exit 1
+        if: ${{ always() && (steps.pipeline.outputs.exit_code != '0' || steps.verify.outputs.exit_code != '0' || steps.drill.outputs.exit_code != '0' || steps.api.outputs.exit_code != '0') }}
+        run: |
+          echo "pipeline=${{ steps.pipeline.outputs.exit_code }} verify=${{ steps.verify.outputs.exit_code }} drill=${{ steps.drill.outputs.exit_code }} api=${{ steps.api.outputs.exit_code }}"
+          exit 1

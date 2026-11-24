@@ -188,3 +188,78 @@ def test_real_http_server(env):
     finally:
         server.shutdown()
         server.server_close()
+
+
+# ---------------------------------------------------------- audit additions
+def test_errors_do_not_leak_filesystem_paths(env, tmp_path):
+    secret_dir = tmp_path / "very-private-dir"
+    secret_dir.mkdir()
+    corrupt = secret_dir / "ledger.sqlite"
+    corrupt.write_bytes(b"not a database" * 100)
+    for ledger, registry in ((secret_dir / "absent.sqlite", env["registry"]),
+                             (corrupt, env["registry"]),
+                             (env["ledger"], secret_dir / "absent.json")):
+        app = _app(env, ledger=ledger, registry=registry)
+        for path in ("/health", "/v1/status", "/v1/predictions/upcoming"):
+            status, body = call(app, path)[:2]
+            assert status == 503
+            text = json.dumps(body)
+            assert "very-private-dir" not in text and str(tmp_path) not in text and "Errno" not in text
+
+
+def test_data_responses_carry_attribution(env):
+    app = _app(env)
+    for path in ("/v1/status", "/v1/predictions/upcoming", "/v1/predictions/history", "/v1/evaluation"):
+        status, body = call(app, path)[:2]
+        assert status == 200
+        assert "CC BY-SA 4.0" in body["attribution"]["results"]
+        assert "CC0" in body["attribution"]["fixtures"]
+
+
+def test_requests_never_modify_the_ledger_or_trigger_fitting(env, monkeypatch):
+    import hashlib
+    before = hashlib.sha256(env["ledger"].read_bytes()).hexdigest()
+
+    def forbidden(*a, **k):
+        raise AssertionError("the API must never fit a model")
+
+    monkeypatch.setattr(pipeline, "build_training", forbidden)
+    monkeypatch.setattr(pipeline, "challenger_probabilities", forbidden)
+    app = _app(env)
+    for method in ("GET", "HEAD", "POST", "PUT", "DELETE", "PATCH"):
+        for path in ("/health", "/v1/status", "/v1/predictions/upcoming", "/v1/predictions/history",
+                     "/v1/evaluation", "/metrics", "/v1/retrain", "/v1/promote"):
+            b"".join(app({"REQUEST_METHOD": method, "PATH_INFO": path, "QUERY_STRING": "",
+                          "wsgi.input": io.BytesIO()}, lambda status, headers: None))
+    assert hashlib.sha256(env["ledger"].read_bytes()).hexdigest() == before
+
+
+@pytest.mark.parametrize("path", ["/debug", "/admin", "/v1/retrain", "/v1/promote", "/v1/model",
+                                  "/v1/config", "/env", "/.env", "/v1/predictions/../../etc/passwd"])
+def test_no_debug_admin_or_traversal_routes(env, path):
+    status, body = call(_app(env), path)[:2]
+    assert status in (400, 404)
+    text = json.dumps(body)
+    assert "PATH" not in text and "HOME" not in text
+
+
+def test_every_served_probability_triplet_sums_to_one(env):
+    app = _app(env)
+    _, upcoming = call(app, "/v1/predictions/upcoming", "include_challengers=true")[:2]
+    _, history = call(app, "/v1/predictions/history", "limit=500")[:2]
+    triplets = [p["probabilities"] for p in upcoming["predictions"] + history["predictions"]]
+    triplets += [c["probabilities"] for p in upcoming["predictions"] for c in p["challengers"]]
+    assert len(triplets) >= 30
+    for t in triplets:
+        assert abs(t["home"] + t["draw"] + t["away"] - 1) < 1e-9
+        assert all(0 <= v <= 1 for v in t.values())
+    for p in upcoming["predictions"]:
+        assert p["model_version"] == "alea-dc-v2.4.1"
+        assert datetime.fromisoformat(p["predicted_at"]) < datetime.fromisoformat(p["kickoff_at_listed"])
+
+
+def test_serve_api_defaults_to_loopback():
+    import scripts.serve_api as serve
+    import inspect
+    src = inspect.getsource(serve.main)
+    assert 'env("ALEA_HOST", "127.0.0.1")' in src

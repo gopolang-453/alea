@@ -79,3 +79,29 @@ def test_ledger_drill_fails_on_corrupt_store(tmp_path):
     (tmp_path / "c.sqlite").write_bytes(b"x" * 4096)
     with pytest.raises(Exception):
         run_ledger_drill(tmp_path / "c.sqlite", tmp_path / "s", registry=REGISTRY)
+
+
+def test_restore_refuses_backup_missing_outcomes_or_observations(tmp_path):
+    """Audit: history-loss protection must cover every table, not only champion forecasts."""
+    from datetime import datetime, timezone
+    from stages.stage12.ledger_ops import backup_ledger, restore_ledger
+    from stages.stage12.reliability import ReliabilityError
+    from stages.stage9.prospective_ledger import ProspectiveLedger
+    import pytest
+    live = tmp_path / "ledger.sqlite"
+    utc = timezone.utc
+    with ProspectiveLedger(live) as led:
+        led.record_prediction(fixture_key="2026-12-05|a fc|b fc", predicted_at=datetime(2026, 12, 1, tzinfo=utc),
+                              kickoff_at=datetime(2026, 12, 5, 15, tzinfo=utc), p_home=0.5, p_draw=0.3,
+                              p_away=0.2, model_version="alea-dc-v2.4.1")
+    manifest = backup_ledger(live, tmp_path / "b")
+    with ProspectiveLedger(live) as led:  # later: the match is settled
+        led.observe_and_settle("2026-12-05|a fc|b fc", [("wikipedia", 2, 1, "r1")],
+                               datetime(2026, 12, 6, tzinfo=utc))
+        settled = led.get_outcome("2026-12-05|a fc|b fc")
+    assert settled is not None
+    before = live.read_bytes()
+    with pytest.raises(ReliabilityError, match="backup lacks rows"):
+        restore_ledger(tmp_path / "b" / manifest["backup"], manifest, live)
+    assert live.read_bytes() == before
+    restore_ledger(tmp_path / "b" / manifest["backup"], manifest, live, allow_history_loss=True)

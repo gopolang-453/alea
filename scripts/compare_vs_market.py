@@ -2,9 +2,13 @@
 """Task 7: frozen champion vs bookmaker closing market on identical fixtures.
 
 Joins the champion's leakage-free walk-forward predictions
-(results/stage9_mle/predictions.csv, frozen params xi=0.0018 reg=1.0) with the
-Shin-devigged closing-odds probabilities already present locally in
-results/predictions_closing_odds.csv (football-data.co.uk Bet365 closing odds).
+(results/stage9_mle/predictions.csv, frozen params xi=0.0018 reg=1.0) with a
+user-supplied, locally held file of devigged market probabilities passed via
+``--odds`` (columns: date, home, away, p_market_home, p_market_draw,
+p_market_away, y_home, y_draw, y_away). No odds file is shipped with the repository: bookmaker odds
+from football-data.co.uk are for the user's own personal/academic use and must
+not be committed, uploaded as CI artifacts or otherwise redistributed. Keep the
+file outside the repository or under the git-ignored ``data/`` directory.
 
 Reports paired differences (champion - market; negative = champion better) in
 log loss, Brier and RPS with ISO-week block-bootstrap 95% CIs, per season, by
@@ -30,6 +34,8 @@ if str(ROOT) not in sys.path:
 from stages.stage1.data_store import canonical_team  # noqa: E402
 
 SAMPLES, SEED = 2000, 20261124
+ODDS_COLUMNS = ("date", "home", "away", "p_market_home", "p_market_draw", "p_market_away",
+                "y_home", "y_draw", "y_away")
 
 
 def _season(d: pd.Timestamp) -> str:
@@ -91,6 +97,10 @@ def build(champion_csv: Path, odds_csv: Path) -> pd.DataFrame:
     c = c.assign(home=c.home_team.map(canonical_team), away=c.away_team.map(canonical_team))
     o = pd.read_csv(odds_csv)
     o = o.assign(home=o.home.map(canonical_team), away=o.away.map(canonical_team))
+    sums = o[["p_market_home", "p_market_draw", "p_market_away"]].sum(axis=1)
+    if ((sums - 1).abs() > 1e-6).any():
+        raise SystemExit(f"{int(((sums - 1).abs() > 1e-6).sum())} odds rows are not devigged "
+                         "probabilities summing to 1; refusing")
     o["y"] = np.where(o.y_home == 1, 0, np.where(o.y_draw == 1, 1, 2))
     m = c.merge(o[["date", "home", "away", "p_market_home", "p_market_draw", "p_market_away", "y"]],
                 on=["date", "home", "away"], how="inner", validate="one_to_one")
@@ -157,13 +167,26 @@ def render(res: dict) -> str:
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--champion", default=str(ROOT / "results/stage9_mle/predictions.csv"))
-    ap.add_argument("--odds", default=str(ROOT / "results/predictions_closing_odds.csv"))
+    ap.add_argument("--odds", required=True,
+                    help="local CSV of devigged market probabilities (never committed or uploaded)")
     ap.add_argument("--out-dir", default=str(ROOT / "results/stage9_market"))
     a = ap.parse_args(argv)
-    if not Path(a.odds).exists():
-        print(f"BLOCKED: odds file {a.odds} not present (football-data.co.uk, personal/academic use only)")
+    odds = Path(a.odds)
+    if not odds.is_file():
+        print(f"BLOCKED: odds file {odds} not found. Supply your own locally held file with --odds; "
+              "none is distributed with ALEA (football-data.co.uk odds are personal/academic use only).",
+              file=sys.stderr)
         return 2
-    res = run(Path(a.champion), Path(a.odds))
+    if not Path(a.champion).is_file():
+        print(f"BLOCKED: champion predictions {a.champion} not found (run the Stage 9 backtest first).",
+              file=sys.stderr)
+        return 2
+    header = set(pd.read_csv(odds, nrows=0).columns)
+    missing = sorted(set(ODDS_COLUMNS) - header)
+    if missing:
+        print(f"BLOCKED: odds file {odds} lacks required columns {missing}", file=sys.stderr)
+        return 2
+    res = run(Path(a.champion), odds)
     out = Path(a.out_dir)
     out.mkdir(parents=True, exist_ok=True)
     (out / "champion_vs_market.json").write_text(json.dumps(res, indent=2) + "\n")

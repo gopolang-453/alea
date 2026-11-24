@@ -1,6 +1,6 @@
 # ALEA Stage 11 prediction API (read-only over the prospective ledger).
 # Build:  docker build -t alea-api .
-# Run:    docker run --rm -p 8080:8080 -v "$PWD/ledger-data:/data:ro" alea-api
+# Run:    docker run --rm -p 127.0.0.1:8080:8080 -v "$PWD/ledger-data:/data:ro" alea-api
 FROM python:3.11-slim
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 \
     ALEA_LEDGER=/data/ledger.sqlite ALEA_REGISTRY=/app/config/model_registry.json \

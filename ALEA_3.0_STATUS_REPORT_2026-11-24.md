@@ -1,5 +1,7 @@
 # ALEA 3.0 — Consolidated status report (24 Nov 2026, updated after the second pass)
 
+> Superseded in part by `ALEA_3.0_FINAL_AUDIT_2026-11-24.md` (final audit: findings register, commit gate, pairing rules, odds removal). Where they differ, the final audit is current.
+
 This report supersedes every earlier status, progress, plan and session report in the repository root (they now carry a "superseded" banner). Every number below was produced in this session by the scripts named next to it, on the real data described in "Data". Nothing was copied from older reports.
 
 **Bottom line:** ALEA 3.0 is **not released**. The frozen champion `alea-dc-v2.4.1` (Dixon–Coles MLE, fixed xi=0.0018, reg=1.0) stays. None of the 8 pre-registered challengers, temperature calibration, per-fold hyperparameter tuning or the dev candidate beat it with statistical support. The real-data Stage 9 pipeline now runs end to end for the first time, and live pre-kickoff forecasts are being recorded in a tamper-evident ledger.

@@ -112,12 +112,29 @@ def evaluate_ledger(ledger: ProspectiveLedger, registry: Dict[str, Any], now: da
         result["champion"] = {"n": 0, "note": "no settled forecasts yet"}
 
     settled_by_key = {r["fixture_key"]: r for r in settled_rows}
+    champion_by_key = {p["fixture_key"]: p for p in preds}
+    run_training = {}
+    for r in ledger.runs():
+        try:
+            run_training[r["run_id"]] = json.loads(r["summary_json"]).get("training_matches")
+        except (TypeError, ValueError):
+            pass
     comparisons = {}
     for challenger in registry.get("challengers", []):
         model_id = challenger["model_id"]
-        rows = [c for c in ledger.challenger_predictions(model_id) if c["fixture_key"] in settled_by_key]
+        recorded = ledger.challenger_predictions(model_id)
+        rows, excluded = [], {}
+        for c in recorded:
+            if c["fixture_key"] not in settled_by_key:
+                continue
+            reason = _pairing_exclusion(c, champion_by_key[c["fixture_key"]], challenger["model_version"],
+                                        ledger, run_training)
+            if reason:
+                excluded[reason] = excluded.get(reason, 0) + 1
+            else:
+                rows.append(c)
         entry: Dict[str, Any] = {"model_version": challenger["model_version"], "n_paired": len(rows),
-                                 "forecasts_recorded": len(ledger.challenger_predictions(model_id))}
+                                 "forecasts_recorded": len(recorded), "settled_but_not_paired": excluded}
         if rows:
             keyed = [settled_by_key[c["fixture_key"]] for c in rows]
             pc = np.array([[c["p_home"], c["p_draw"], c["p_away"]] for c in rows])
@@ -139,6 +156,41 @@ def evaluate_ledger(ledger: ProspectiveLedger, registry: Dict[str, Any], now: da
         comparisons[model_id] = entry
     result["challengers"] = comparisons
     return result
+
+
+def _training_matches(row: Dict[str, Any], run_training: Dict[str, Any]) -> Optional[int]:
+    try:
+        extra = json.loads(row["payload_json"]).get("extra", {})
+    except (TypeError, ValueError):
+        return None
+    if extra.get("training_matches") is not None:
+        return int(extra["training_matches"])
+    value = run_training.get(extra.get("run_id"))
+    return int(value) if value is not None else None
+
+
+def _pairing_exclusion(c: Dict[str, Any], champ: Dict[str, Any], version: str,
+                       ledger: ProspectiveLedger, run_training: Dict[str, Any]) -> Optional[str]:
+    """Why a settled challenger forecast may not be paired with the champion (None = eligible).
+
+    Pairing requires the registered challenger version, a forecast made
+    before the effective (possibly rescheduled) kickoff, and an information
+    set no larger than the champion's (same number of training matches).
+    """
+    if c["model_version"] != version:
+        return "model_version_differs_from_registry"
+    kickoff = datetime.fromisoformat(c["kickoff_at"])
+    resched = [e for e in ledger.events(c["fixture_key"]) if e["event_type"] == "RESCHEDULED"]
+    if resched and resched[-1].get("new_kickoff_at"):
+        kickoff = min(kickoff, datetime.fromisoformat(resched[-1]["new_kickoff_at"]))
+    if datetime.fromisoformat(c["predicted_at"]) >= kickoff:
+        return "challenger_forecast_not_before_kickoff"
+    n_ch, n_champ = _training_matches(c, run_training), _training_matches(champ, run_training)
+    if n_ch is None or n_champ is None:
+        return "information_set_unverifiable"
+    if n_ch != n_champ:
+        return "information_set_differs_from_champion"
+    return None
 
 
 def promotion_decision(entry: Dict[str, Any], rule: Dict[str, Any]) -> str:
@@ -244,7 +296,15 @@ def render_markdown(ev: Dict[str, Any], *, run: Optional[Dict[str, Any]] = None)
         for e in ev["events"]:
             lines.append(f"| {_label(e['fixture_key'])} | {e['event_type']} | {e['source']} | {e['new_kickoff_at'] or ''} | "
                          f"{e['detail']} |")
-    lines.append("")
+    lines += ["", "## Data sources and licences", "",
+              "- Forecast probabilities: ALEA model output.",
+              "- Match results: Wikipedia contributors, \"2026\u201327 Premier League\" "
+              "(the revision used by each run is recorded in `runs/` and in the ledger), licensed under "
+              "[CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). Result observations "
+              "redistributed in this ledger remain under CC BY-SA 4.0.",
+              "- Fixtures and historical results: [OpenFootball football.json]"
+              "(https://github.com/openfootball/football.json), CC0 1.0.",
+              "- Licensing assessment: `docs/DATA_SOURCES_AND_LICENSING.md` (not legal advice).", ""]
     return "\n".join(lines)
 
 

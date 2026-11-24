@@ -27,6 +27,7 @@ import argparse
 import hashlib
 import json
 import logging
+import os
 import subprocess
 import sys
 from datetime import datetime, timedelta, timezone
@@ -61,6 +62,10 @@ from stages.stage9.prospective_ledger import LedgerError, ProspectiveLedger, mat
 
 HISTORICAL_SEASONS = ["2019-20", "2020-21", "2021-22", "2022-23", "2023-24", "2024-25", "2025-26"]
 CURRENT_SEASON = "2026-27"
+OPENFOOTBALL_FIXTURES_URL = "https://raw.githubusercontent.com/openfootball/football.json/master/2026-27/en.1.json"
+# Longest gap between rounds in the 2026-27 list is 503 h (international
+# breaks); 24 days leaves a margin. Beyond it the feed is stale regardless.
+MAX_SCHEDULED_BREAK_HOURS = 24 * 24
 MATCH_DURATION = timedelta(hours=2)
 ELO_BURN_IN = 380
 ORDERED_LOGIT_RIDGE = 0.001
@@ -177,6 +182,20 @@ def run_gates(fixtures, current, crosschecks, now, *, grace_hours, max_age_hours
         # evidence the feed is current, not a future timestamp.
         latest = now
     fresh = data_freshness(latest, now, max_age_hours=max_age_hours)
+    if fresh["status"] == "stale" and latest is not None:
+        # An old latest result only means a stale feed if fixtures have been
+        # played since then. During international breaks (gaps of up to ~21
+        # days in the 2026-27 list) nothing is due, so the feed is current.
+        played_since = fixtures[(fixtures.kickoff_utc + MATCH_DURATION > latest)
+                                & (fixtures.kickoff_utc + MATCH_DURATION <= now)]
+        fresh["fixtures_played_since_latest_result"] = int(len(played_since))
+        fresh["max_break_hours"] = MAX_SCHEDULED_BREAK_HOURS
+        # Hard ceiling: the exemption never covers a gap longer than the
+        # longest scheduled break, so an incomplete fixture list cannot hide
+        # a feed that has stopped updating.
+        if played_since.empty and fresh["age_hours"] <= MAX_SCHEDULED_BREAK_HOURS:
+            fresh["status"] = "fresh"
+            fresh["note"] = "no fixture has been played since the latest result (scheduled break)"
     report["freshness"] = {**fresh, "latest_result_available_at": latest.isoformat() if latest else None}
     if fresh["status"] != "fresh":
         raise GateError(f"results feed is {fresh['status']}: {fresh}")
@@ -343,8 +362,14 @@ def main(argv=None) -> int:
             ledger.log_issue("error", "run_failed", run["reason"], run_id=stamp, at=now)
             log.exception("FAILED")
             code = 1
-        run["ledger_after"] = {"fingerprint": ledger.fingerprint(),
+        after = ledger.integrity_report()
+        run["ledger_after"] = {"ok": after["ok"], "champion_forecasts": after["champion_forecasts"],
+                               "outcomes": after["outcomes"], "fingerprint": ledger.fingerprint(),
                                "challenger_fingerprint": ledger.challenger_fingerprint()}
+        if not after["ok"]:
+            run.update(status="failed", reason=f"ledger integrity failure after writing: {after['problems']}")
+            log.error(run["reason"])
+            code = 3
         ledger.record_run(stamp, now, run["status"], {k: v for k, v in run.items() if k != "forecasts"})
         _write_outputs(output_dir, stamp, run, ledger, registry, now, args.grace_hours)
     log.info("status=%s recorded=%s settled=%s", run["status"], run.get("forecasts_recorded"),
@@ -365,9 +390,18 @@ def _pipeline(args, now, stamp, registry, ledger: ProspectiveLedger, run: dict) 
     if problems:
         raise GateError(f"fixture list failed validation: {problems[:5]}")
     wiki = load_wikipedia_snapshot(args.wikipedia_snapshot)
+    try:
+        wiki_fetched_at = json.loads(Path(args.wikipedia_snapshot).read_text(encoding="utf-8")).get("fetched_at")
+    except (OSError, ValueError):
+        wiki_fetched_at = None
+    fixtures_mtime = datetime.fromtimestamp(Path(args.fixtures_json).stat().st_mtime, timezone.utc).isoformat()
     run["sources"] = {
-        "fixtures": {"name": "OpenFootball football.json (CC0)", "sha256": sha256_file(args.fixtures_json)},
+        "fixtures": {"name": "OpenFootball football.json (CC0)", "sha256": sha256_file(args.fixtures_json),
+                     "url": OPENFOOTBALL_FIXTURES_URL, "retrieved_at": fixtures_mtime,
+                     "retrieved_at_basis": "local file modification time"},
         "results": {"name": "Wikipedia (CC BY-SA 4.0)", "title": wiki.title, "revid": wiki.revid,
+                    "url": f"https://en.wikipedia.org/w/index.php?oldid={wiki.revid}",
+                    "retrieved_at": wiki_fetched_at,
                     "revision_timestamp": wiki.revision_timestamp, "update_parameter": wiki.update_date,
                     "content_sha256": wiki.content_sha256, "results": int(len(wiki.results))},
         "wikipedia_attribution": wiki.attribution,
@@ -388,6 +422,10 @@ def _pipeline(args, now, stamp, registry, ledger: ProspectiveLedger, run: dict) 
     current = attach_kickoffs(wiki.results, fixtures)
 
     crosschecks = {"openfootball": load_openfootball_results(Path(args.fixtures_json))}
+    if args.crosscheck_csv and os.environ.get("GITHUB_ACTIONS") == "true":
+        # The crosscheck feed's observations are stored in the ledger, which is
+        # published on a public branch; that feed's terms do not allow this.
+        raise GateError("--crosscheck-csv is for local use only and is refused in GitHub Actions")
     if args.crosscheck_csv:
         crosschecks["football-data.co.uk (local)"] = load_results_csv(Path(args.crosscheck_csv))
         run["sources"]["crosscheck_csv_sha256"] = sha256_file(args.crosscheck_csv)
@@ -507,6 +545,17 @@ def _pipeline(args, now, stamp, registry, ledger: ProspectiveLedger, run: dict) 
         ledger_key = key if existing is None else existing["fixture_key"]
         have = {c["model_id"] for c in ledger.challenger_predictions() if c["fixture_key"] == ledger_key}
         kickoff = datetime.fromisoformat(existing["kickoff_at"]) if existing else row.kickoff_utc.to_pydatetime()
+        kickoff = min(kickoff, row.kickoff_utc.to_pydatetime())
+        if existing is not None and challengers and set(registered) - have:
+            # A challenger added after the champion forecast must not see more
+            # information than the champion had (identical-information pairing).
+            champ_n = json.loads(existing["payload_json"]).get("extra", {}).get("training_matches")
+            if champ_n != int(len(training)):
+                ledger.log_issue("warning", "challenger_not_recorded_information_changed",
+                                 f"champion forecast used {champ_n} training matches, this run has "
+                                 f"{len(training)}; challengers not recorded for this fixture",
+                                 fixture_key=ledger_key, run_id=stamp, at=now)
+                have = set(registered)
         for model_id, values in challengers.items():
             if model_id not in registered or model_id in have or now >= kickoff:
                 continue
@@ -516,7 +565,8 @@ def _pipeline(args, now, stamp, registry, ledger: ProspectiveLedger, run: dict) 
                 model_id=model_id, fixture_key=ledger_key, predicted_at=now, kickoff_at=kickoff,
                 p_home=q[0], p_draw=q[1], p_away=q[2], model_version=registered[model_id]["model_version"],
                 code_sha=run["code_sha"], data_snapshot_hash=data_hash,
-                extra={"elo_diff": float(challengers["_elo_diff"][i]), **provenance})
+                extra={"elo_diff": float(challengers["_elo_diff"][i]),
+                       "training_matches": int(len(training)), **provenance})
             added_ch += 1
         forecasts.append({"fixture_key": key, "kickoff_utc": row.kickoff_utc.isoformat(),
                           "home": row.home, "away": row.away, "p_home": round(p[0], 4),
