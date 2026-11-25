@@ -55,14 +55,15 @@ The host holds only a disposable copy. If it is lost, a restart downloads it aga
 - It is the cheapest always-on Docker host compared here, with automatic HTTPS on `<app>.fly.dev` and a health check on `/health`.
 - It has a Johannesburg region (`jnb`) ([Fly.io regions](https://fly.io/docs/reference/regions/)).
 - `fly.toml` in the repository is ready to use. No secrets are stored on the host.
-- Fly needs an account with a payment card. A custom domain is optional and costs extra.
+- Fly needs an account with a payment card. A custom domain is optional and costs extra. Once a card is added, Fly includes $5 of usage each month. Machine prices vary by region: `iad` and `ewr` are the cheapest, and `jnb` may cost a little more. Outbound traffic to Africa costs $0.12/GB. A shared IPv4 address and the first 10 certificates are free ([Fly.io pricing](https://fly.io/docs/about/pricing/)).
 
 **Render** ($7/month, no sleep) is the simplest alternative. **Hetzner + Caddy** (€5.99/month) gives the most control but needs server administration. **Cloud Run** can be free at this traffic level, but needs a Google Cloud account and billing set up.
 
 ### Steps once you approve (needs your account)
 
 1. Create a Fly.io account at https://fly.io and add a payment card (I cannot do this for you).
-2. Install `flyctl`, run `fly auth login`, then from the repository root `fly launch --no-deploy --copy-config --name <unique-name>`, then `fly deploy`.
+2. Install `flyctl` and run `fly auth login`. From the repository root, run `fly apps create <unique-name>`, then `fly deploy --app <unique-name> --ha=false`. Without `--ha=false`, Fly creates a second, spare machine and doubles the cost.
+   Check the deployment with `fly status --app <unique-name>` and `curl -sI https://<unique-name>.fly.dev/`.
 3. Open `https://<unique-name>.fly.dev` on the iPhone, then Share → Add to Home Screen.
 4. Optional: point a domain you own at it with `fly certs add <domain>`.
 

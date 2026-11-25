@@ -1,7 +1,7 @@
 # Fly.io configuration for the ALEA web app + API. NOT DEPLOYED.
 # Deploying needs the owner's Fly.io account and payment card (see docs/HOSTING_OPTIONS.md).
-#   fly launch --no-deploy --copy-config --name <your-app-name>
-#   fly deploy
+#   fly apps create <your-app-name>
+#   fly deploy --app <your-app-name> --ha=false   # --ha=false: one machine, not the default two
 # No secrets are needed: the ledger is downloaded from the public prospective-ledger branch,
 # verified with the append-only commit gate and refreshed every 30 minutes.
 app = "alea-forecasts"            # change to a globally unique name
