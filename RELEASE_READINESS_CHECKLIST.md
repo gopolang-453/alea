@@ -19,6 +19,9 @@ Each mark is backed by a command or run in `ALEA_3.0_FINAL_AUDIT_2026-11-24.md`.
 | Prospective metrics, paired ISO-week bootstrap, pairing rules | yes | yes (hand-checked formulas) | yes | runs on real ledger, n=0 settled | via workflow | **≥300 paired settled fixtures** |
 | Weekly workflow (15 steps, alert on failure) | yes | yes (dry run on a copy) | yes (dry runs on branch) | yes (24 Nov live run seeded 10 forecasts) | **no**: schedule fires only from `main` | merge PR #4 (owner) |
 | Stage 11 API (read-only, no path leakage, attribution, no model switching) | yes | yes (26 tests; real HTTP server on live ledger copy, hash unchanged) | yes; container 200/503 | yes | **no public host** | choose host (`docs/HOSTING_OPTIONS.md`), deploy |
+| Web app 1.0 (`web/`, Matches / detail / Results / About, PWA shell, strict CSP) | yes | yes (32 tests; Chromium emulation of iPhone 13/SE, iPad Mini, desktop) | container smoke test checks `/`, CSP, asset, traversal | yes (live ledger copy; private preview) | **no public host** | real Safari/iPhone check; host (owner) |
+| Expected goals and top scorelines recorded at forecast time (new forecasts only, 1X2 guard) | yes | yes | yes | yes (dry run on live copy, 10 forecasts) | via workflow | first live run after merge |
+| Hosted ledger sync (append-only gate before swap) | yes | yes (7 tests) | yes | yes (byte-identical to `prospective-ledger`) | no | host (owner) |
 | Stage 12 drill (17 checks) and restore history-loss guard (all tables) | yes | yes, 17/17 on live ledger copy | yes | yes | runs each workflow run | monitoring of a deployed service; production reliability not demonstrated |
 | Champion vs challengers on identical fixtures | yes | yes | yes | yes (n=1,900 dev / 380 holdout) | n/a | — |
 | Champion vs closing market (aggregates only; odds user-supplied via `--odds`) | yes | yes (synthetic CLI tests; local rerun identical) | synthetic tests only | yes (n=1,140; market better) | n/a | — |

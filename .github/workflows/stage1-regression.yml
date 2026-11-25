@@ -91,6 +91,12 @@ jobs:
           python3 -c "import json; h=json.load(open('history.json')); assert h['total']>=10; assert all(abs(sum(p['probabilities'].values())-1)<1e-9 for p in h['predictions'])"
           code=$(curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:8080/v1/predictions/history?limit=-1"); test "$code" = 400
           code=$(curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:8080/v1/predictions/nope"); test "$code" = 404 -o "$code" = 400
+          # Web app: served from the image, with the CSP; no path traversal; fixture list degrades gracefully.
+          curl -fsD web_headers.txt http://127.0.0.1:8080/ -o index.html && grep -q "<title>ALEA" index.html
+          grep -qi "^content-security-policy: default-src 'self'" web_headers.txt
+          curl -fs http://127.0.0.1:8080/assets/app.js -o /dev/null
+          code=$(curl -s -o /dev/null -w "%{http_code}" --path-as-is "http://127.0.0.1:8080/../Dockerfile"); test "$code" = 404
+          curl -fs http://127.0.0.1:8080/v1/fixtures/upcoming | python3 -c "import json,sys; d=json.load(sys.stdin); assert 'available' in d"
           docker logs alea 2>&1 | tail -20
       - name: Container refuses a corrupted ledger (503)
         run: |
