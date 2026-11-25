@@ -13,7 +13,9 @@ Endpoints (all GET, JSON unless noted)
   /v1/predictions/history              ?team= &from=YYYY-MM-DD &to=YYYY-MM-DD &status= &limit=1..500 &offset=
   /v1/predictions/<fixture_key>        URL-encoded "YYYY-MM-DD|home|away"
   /v1/evaluation                       settled-forecast metrics and challenger comparison
+  /v1/fixtures/upcoming                ?days=1..60  listed fixtures (OpenFootball) + forecast status
   /metrics                             Prometheus text format
+  /  and static files                  the mobile web app (web/), from a fixed allowlist
 """
 from __future__ import annotations
 
@@ -45,6 +47,45 @@ DATA_ATTRIBUTION = {
     "fixtures": "OpenFootball football.json, CC0 1.0 (https://github.com/openfootball/football.json)",
     "licensing_notes": "See docs/DATA_SOURCES_AND_LICENSING.md. Not legal advice; commercial use needs review.",
 }
+
+
+FIXTURES_FILE = "fixtures_upcoming.json"
+MIN_LEAD_HOURS = 48          # the pipeline only forecasts fixtures listed >= 48 h ahead
+# Same-origin only, no inline script, no framing. Applied to every response.
+CSP = ("default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; "
+       "connect-src 'self'; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; "
+       "form-action 'none'; frame-ancestors 'none'")
+SECURITY_HEADERS = [("X-Content-Type-Options", "nosniff"), ("Content-Security-Policy", CSP),
+                    ("Referrer-Policy", "no-referrer"), ("X-Frame-Options", "DENY"),
+                    ("Permissions-Policy", "camera=(), microphone=(), geolocation=(), interest-cohort=()"),
+                    ("Cross-Origin-Opener-Policy", "same-origin")]
+_STATIC_TYPES = {".html": "text/html; charset=utf-8", ".css": "text/css; charset=utf-8",
+                 ".js": "text/javascript; charset=utf-8", ".json": "application/json",
+                 ".webmanifest": "application/manifest+json", ".svg": "image/svg+xml",
+                 ".png": "image/png", ".ico": "image/x-icon", ".woff2": "font/woff2", ".txt": "text/plain; charset=utf-8"}
+
+
+def _load_static(web_dir: Optional[Path]) -> Dict[str, Tuple[bytes, str]]:
+    """Read the web app into memory once. Only regular files under ``web_dir``
+    with a known type are served, looked up by exact URL path, so request
+    paths can never reach anything else on disk."""
+    files: Dict[str, Tuple[bytes, str]] = {}
+    if web_dir is None or not web_dir.is_dir():
+        return files
+    base = web_dir.resolve()
+    for f in sorted(base.rglob("*")):
+        if not f.is_file() or f.is_symlink() or f.suffix not in _STATIC_TYPES:
+            continue
+        resolved = f.resolve()
+        if base not in resolved.parents:
+            continue
+        rel = resolved.relative_to(base).as_posix()
+        if any(part.startswith(".") for part in rel.split("/")):
+            continue
+        files["/" + rel] = (resolved.read_bytes(), _STATIC_TYPES[f.suffix])
+    if "/index.html" in files:
+        files["/"] = files["/index.html"]
+    return files
 
 
 class ApiError(Exception):
@@ -115,7 +156,8 @@ class ForecastAPI:
     """WSGI application. ``clock`` is injectable for tests."""
 
     def __init__(self, ledger_path: str | Path, registry_path: str | Path, *, root: str | Path,
-                 max_staleness_hours: float = 216.0,
+                 max_staleness_hours: float = 216.0, web_dir: str | Path | None = "default",
+                 fixtures_path: str | Path | None = None, sync_status: Optional[Callable[[], Dict[str, Any]]] = None,
                  clock: Callable[[], datetime] = lambda: datetime.now(timezone.utc)) -> None:
         self.ledger_path = Path(ledger_path)
         self.registry_path = Path(registry_path)
@@ -123,6 +165,11 @@ class ForecastAPI:
         self.max_staleness_hours = max_staleness_hours
         self.clock = clock
         self.metrics = Metrics()
+        if web_dir == "default":
+            web_dir = self.root / "web"
+        self.static = _load_static(Path(web_dir) if web_dir else None)
+        self.fixtures_path = Path(fixtures_path) if fixtures_path else self.ledger_path.parent / FIXTURES_FILE
+        self.sync_status = sync_status
 
     # ------------------------------------------------------------- helpers
     def _registry(self) -> Dict[str, Any]:
@@ -198,12 +245,22 @@ class ForecastAPI:
         if abs(total - 1.0) > 1e-6:
             raise ApiError(500, "invalid_probabilities", f"{p['fixture_key']} probabilities sum to {total}")
         extra = json.loads(p["payload_json"]).get("extra", {})
+        xg = None
+        if p.get("expected_goals_home") is not None and p.get("expected_goals_away") is not None:
+            xg = {"home": p["expected_goals_home"], "away": p["expected_goals_away"]}
+        scores = extra.get("top_scorelines")
         out = {"fixture_key": p["fixture_key"], "date": day.isoformat(), "home": home, "away": away,
                "kickoff_at_listed": p["kickoff_at"], "predicted_at": p["predicted_at"],
                "model_version": p["model_version"], "probabilities": probs,
                "training_data_sha256": p["data_snapshot_hash"], "code_sha": p.get("code_sha"),
                "training_matches": extra.get("training_matches"),
-               "results_source_revision": extra.get("wikipedia_revid")}
+               "results_source_revision": extra.get("wikipedia_revid"),
+               "prior_only": extra.get("prior_only"),
+               # Model expected goals (Dixon-Coles lambda/mu) and most likely exact scores. Recorded at
+               # forecast time for forecasts made from release 1.0 on; null for earlier rows, which
+               # are never recomputed.
+               "expected_goals": xg,
+               "top_scorelines": scores if isinstance(scores, list) else None}
         if status is not None:
             out["status"] = status.status
             if status.outcome:
@@ -224,6 +281,13 @@ class ForecastAPI:
             checks = self._checks(ledger, registry)
         checks.update(api_version=API_VERSION, champion=registry["champion"]["model_version"],
                       time=self.clock().isoformat())
+        if self.sync_status is not None:
+            sync = self.sync_status()
+            checks["ledger_sync"] = {k: sync.get(k) for k in ("last_attempt_at", "last_success_at",
+                                                              "last_change_at", "last_error")}
+            if sync.get("last_error") and checks["status"] == "ok":
+                checks["status"] = "degraded"
+                checks["warnings"].append(sync["last_error"])
         return (503 if checks["status"] == "unhealthy" else 200), checks
 
     def status(self, params):
@@ -320,6 +384,44 @@ class ForecastAPI:
         ev["attribution"] = DATA_ATTRIBUTION
         return 200, ev
 
+    def fixtures(self, params):
+        days = _int(params, "days", 60, 1, 60)
+        now = self.clock()
+        try:
+            doc = json.loads(self.fixtures_path.read_text(encoding="utf-8"))
+            listed = doc["fixtures"]
+        except FileNotFoundError:
+            return 200, {"available": False, "fixtures": [], "count": 0, "generated_at": now.isoformat(),
+                         "message": "The fixture list has not been published yet; it is written by the next "
+                                    "scheduled forecast run.", "attribution": DATA_ATTRIBUTION}
+        except (OSError, ValueError, KeyError, TypeError) as exc:
+            log.error("fixture list unreadable: %s", exc)
+            raise ApiError(503, "fixtures_unavailable", "fixture list unreadable")
+        ledger, registry, checks = self._serving_ledger()
+        with ledger:
+            forecast_keys = {p["fixture_key"] for p in ledger.predictions()}
+        items = []
+        for f in listed:
+            try:
+                kickoff = datetime.fromisoformat(f["kickoff_utc"])
+            except (KeyError, TypeError, ValueError):
+                continue
+            if not now < kickoff <= now + timedelta(days=days):
+                continue
+            if f.get("fixture_key") in forecast_keys:
+                state = "forecast_published"
+            elif kickoff > now + timedelta(hours=MIN_LEAD_HOURS):
+                state = "awaiting_forecast"
+            else:
+                state = "not_forecast"   # inside 48 h with no recorded forecast: none will be made
+            items.append({"fixture_key": f.get("fixture_key"), "kickoff_at_listed": f["kickoff_utc"],
+                          "home": f.get("home"), "away": f.get("away"), "forecast_status": state})
+        return 200, {"available": True, "generated_at": now.isoformat(), "list_generated_at": doc.get("generated_at"),
+                     "source": doc.get("source"), "count": len(items), "window_days": days, "fixtures": items,
+                     "note": "Kickoff times are listed (OpenFootball) times and may differ from the actual kickoff. "
+                             "Forecasts are published 2 to 7 days before kickoff by the scheduled run.",
+                     "attribution": DATA_ATTRIBUTION}
+
     def metrics_text(self) -> str:
         gauges: Dict[str, float] = {}
         try:
@@ -351,6 +453,8 @@ class ForecastAPI:
             return (*self.history(params), "history")
         if path == "/v1/evaluation":
             return (*self.evaluation(params), "evaluation")
+        if path == "/v1/fixtures/upcoming":
+            return (*self.fixtures(params), "fixtures")
         if path.startswith("/v1/predictions/"):
             return (*self.one(unquote(path[len("/v1/predictions/"):])), "prediction")
         raise ApiError(404, "not_found", f"no route {path}")
@@ -361,6 +465,16 @@ class ForecastAPI:
         method = environ.get("REQUEST_METHOD", "GET")
         path = environ.get("PATH_INFO", "/")
         route = "unknown"
+        static = self.static.get(path) if method in ("GET", "HEAD") else None
+        if static is not None:
+            payload, ctype = static
+            elapsed = time.perf_counter() - started
+            self.metrics.observe("static", 200, elapsed)
+            # The service worker must revalidate so a new release reaches installed apps.
+            start_response("200 OK", [("Content-Type", ctype), ("Content-Length", str(len(payload))),
+                                      ("Cache-Control", "no-cache"), ("X-Request-Id", request_id),
+                                      *SECURITY_HEADERS])
+            return [b"" if method == "HEAD" else payload]
         try:
             status, body, route = self.route(method, path, environ.get("QUERY_STRING", ""))
         except ApiError as exc:
@@ -380,5 +494,5 @@ class ForecastAPI:
         start_response(f"{status} {_REASONS.get(status, 'Error')}",
                        [("Content-Type", ctype), ("Content-Length", str(len(payload))),
                         ("X-Request-Id", request_id), ("Cache-Control", "no-store"),
-                        ("X-Content-Type-Options", "nosniff")])
+                        *SECURITY_HEADERS])
         return [b"" if method == "HEAD" else payload]

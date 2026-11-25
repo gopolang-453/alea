@@ -7,6 +7,13 @@ Configuration (flags override environment variables):
   ALEA_HOST / ALEA_PORT       bind address (default 127.0.0.1:8080)
   ALEA_MAX_STALENESS_HOURS    /health reports "degraded" beyond this run age (default 216)
   ALEA_LOG_FILE               optional JSON-lines request log file
+  ALEA_FIXTURES               fixture list JSON (default: fixtures_upcoming.json next to the ledger)
+  ALEA_WEB_DIR                web app directory (default: web/ in the repository; "none" disables it)
+  ALEA_LEDGER_SYNC_URL        optional https base URL of the public data branch, e.g.
+                              https://raw.githubusercontent.com/gopolang-453/alea/prospective-ledger
+                              When set, the ledger and fixture list are downloaded at start and
+                              every ALEA_LEDGER_SYNC_MINUTES (default 30), and only swapped in if
+                              they pass the append-only commit gate. ALEA_LEDGER must be writable.
 
 The server is a threaded stdlib WSGI server, adequate for low request volume
 behind a reverse proxy. It opens the ledger read-only on every request, so
@@ -27,7 +34,8 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from stages.stage11.api import ForecastAPI  # noqa: E402
+from stages.stage11.api import FIXTURES_FILE, ForecastAPI  # noqa: E402
+from stages.stage11.ledger_sync import LedgerSync  # noqa: E402
 
 
 class ThreadingWSGIServer(ThreadingMixIn, WSGIServer):
@@ -41,9 +49,20 @@ class QuietHandler(WSGIRequestHandler):
 
 def build_app(args) -> ForecastAPI:
     ledger = Path(args.ledger)
+    sync = None
+    if args.sync_url:
+        fixtures = Path(args.fixtures) if args.fixtures else ledger.parent / FIXTURES_FILE
+        sync = LedgerSync(args.sync_url, ledger, fixtures, interval_minutes=args.sync_minutes)
+        first = sync.sync_once()
+        if not ledger.is_file():
+            raise SystemExit(f"initial ledger sync failed: {first.get('last_error')}")
+        sync.start()
     if not ledger.is_file():
         raise SystemExit(f"ledger not found: {ledger} (refusing to start against a missing store)")
-    return ForecastAPI(ledger, args.registry, root=ROOT, max_staleness_hours=args.max_staleness_hours)
+    web = None if str(args.web_dir).lower() == "none" else args.web_dir
+    return ForecastAPI(ledger, args.registry, root=ROOT, max_staleness_hours=args.max_staleness_hours,
+                       web_dir=web, fixtures_path=args.fixtures,
+                       sync_status=sync.status if sync else None)
 
 
 def main(argv=None) -> int:
@@ -55,6 +74,10 @@ def main(argv=None) -> int:
     parser.add_argument("--port", type=int, default=int(env("ALEA_PORT", "8080")))
     parser.add_argument("--max-staleness-hours", type=float, default=float(env("ALEA_MAX_STALENESS_HOURS", "216")))
     parser.add_argument("--log-file", default=env("ALEA_LOG_FILE"))
+    parser.add_argument("--fixtures", default=env("ALEA_FIXTURES"))
+    parser.add_argument("--web-dir", default=env("ALEA_WEB_DIR", str(ROOT / "web")))
+    parser.add_argument("--sync-url", default=env("ALEA_LEDGER_SYNC_URL"))
+    parser.add_argument("--sync-minutes", type=float, default=float(env("ALEA_LEDGER_SYNC_MINUTES", "30")))
     args = parser.parse_args(argv)
     handlers = [logging.StreamHandler(sys.stderr)]
     if args.log_file:

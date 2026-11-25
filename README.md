@@ -5,6 +5,7 @@ A Dixon–Coles Poisson model for Premier League home / draw / away probabilitie
 **Current status (24 Nov 2026):** see [ALEA_3.0_FINAL_AUDIT_2026-11-24.md](ALEA_3.0_FINAL_AUDIT_2026-11-24.md), [ALEA_3.0_STATUS_REPORT_2026-11-24.md](ALEA_3.0_STATUS_REPORT_2026-11-24.md) and [RELEASE_READINESS_CHECKLIST.md](RELEASE_READINESS_CHECKLIST.md). ALEA 3.0 is not released.
 
 - **Backtest:** on a 7-season real-data walk-forward, the frozen v2.4.1 champion scored 0.980 log-loss in development and 1.027 on the untouched 2025-26 holdout. No challenger beat it, and the Bet365 closing market still beats it by 0.022 log-loss.
+- **Web app:** a mobile-first website (`web/`, served at `/`) shows upcoming fixtures, the champion's published probabilities, likely scorelines, forecast history and results. See [docs/WEB_APP.md](docs/WEB_APP.md). Not yet hosted publicly.
 - **Live forecasting:** pre-kickoff forecasts are made by a scheduled workflow. They are stored in an append-only ledger on the `prospective-ledger` branch and served by a read-only HTTP API.
 
 | Guide | Contents |
@@ -12,7 +13,9 @@ A Dixon–Coles Poisson model for Premier League home / draw / away probabilitie
 | [docs/OPERATIONS.md](docs/OPERATIONS.md) | install, configure, test, import history, forecast, schedule, inspect history, API, backup/restore, recovery |
 | [docs/DATA_SOURCES_AND_LICENSING.md](docs/DATA_SOURCES_AND_LICENSING.md) | which data may be used and why, licence analysis (legal review flags), attribution; Stages 4–6 data findings |
 | [docs/PROSPECTIVE_EVALUATION.md](docs/PROSPECTIVE_EVALUATION.md) | settlement, postponement and promotion rules |
-| [docs/HOSTING_OPTIONS.md](docs/HOSTING_OPTIONS.md) | API hosting comparison (not deployed; owner decision) |
+| [docs/WEB_APP.md](docs/WEB_APP.md) | the mobile web app: screens, honesty rules, iPhone install, security headers |
+| [docs/HOSTING_OPTIONS.md](docs/HOSTING_OPTIONS.md) | hosting comparison, recommended architecture and costs (not deployed; owner decision) |
+| [CHANGELOG.md](CHANGELOG.md), [RELEASE_1.0_READINESS.md](RELEASE_1.0_READINESS.md) | web app release 1.0: changes and test evidence |
 | [docs/ODDS_DATA_HISTORY_CLEANUP.md](docs/ODDS_DATA_HISTORY_CLEANUP.md) | remaining odds-data exposure in git history and the cleanup procedure (needs approval) |
 | [docs/MODEL.md](docs/MODEL.md) | Dixon–Coles maths, metrics, how to reproduce the backtests |
 
@@ -86,5 +89,5 @@ Neither model matches the closing price. The value engine's 2% edge rule lost ab
 ## Limitations / not yet done
 
 - The xG, player and context feature calculators in `stages/stage4..6` are unit-tested scaffolding. They are blocked on licensed, timestamped data and not wired into the champion.
-- The API has not been deployed to a public host, and the schedule fires only once the workflow is on `main`.
+- The web app and API have not been deployed to a public host, and the schedule fires only once the workflow is on `main`.
 - The prospective evidence is still tiny (10 forecasts, 0 settled at 24 Nov 2026).

@@ -156,7 +156,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           # Explicit allowlist: never `git add -A`.
-          for path in ledger.sqlite report.md evaluation.json README.md runs logs stage12; do
+          for path in ledger.sqlite report.md evaluation.json fixtures_upcoming.json README.md runs logs stage12; do
             if [ -e "$path" ]; then git add -- "$path"; fi
           done
           if git diff --cached --name-only | grep -E '(\.tmp$|-journal$|-wal$|-shm$|pre-restore|\.env$|secret|token)'; then

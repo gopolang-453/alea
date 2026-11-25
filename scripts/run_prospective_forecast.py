@@ -286,6 +286,41 @@ def verify_champion(registry: dict) -> None:
                         f"{champ['module_sha256']}; refusing to forecast")
 
 
+def champion_detail(model, params, home: str, away: str, n_scores: int = 5) -> dict:
+    """Expected goals and most likely scorelines from the frozen champion's own
+    ``predict()`` (the same Dixon-Coles fit that produced the 1X2 forecast).
+    Only used for forecasts recorded from now on; existing rows are never changed."""
+    pred = model.predict(params, home, away, allow_new_teams=True)
+    mk = pred["markets"]
+    total = mk["home"] + mk["draw"] + mk["away"]
+    return {"p_1x2": [mk["home"] / total, mk["draw"] / total, mk["away"] / total],"expected_goals_home": float(pred["lambda_home"]),
+            "expected_goals_away": float(pred["lambda_away"]),
+            "top_scorelines": [{"score": s, "probability": round(float(q), 6)}
+                               for s, q in pred["top_scores"][:n_scores]]}
+
+
+UPCOMING_FIXTURES_FILE = "fixtures_upcoming.json"
+
+
+def _write_upcoming_fixtures(output_dir: Path, fixtures: pd.DataFrame, played: set, now: datetime,
+                             source: dict, days: int = 60) -> None:
+    """Publish the not-yet-played fixtures (OpenFootball, CC0) for the web app.
+    Informational only: not part of the ledger or the commit gate."""
+    upcoming = fixtures[(fixtures.kickoff_utc > now) & (fixtures.kickoff_utc <= now + timedelta(days=days))]
+    upcoming = upcoming[[(h, a) not in played for h, a in zip(upcoming.home, upcoming.away)]]
+    doc = {"generated_at": now.isoformat(), "window_days": days,
+           "source": {k: source.get(k) for k in ("name", "url", "sha256", "retrieved_at")},
+           "licence": "CC0 1.0 (OpenFootball football.json)",
+           "note": "Listed kickoff times; broadcasters can move matches.",
+           "fixtures": [{"fixture_key": fixture_key(r.kickoff_utc, r.home, r.away),
+                         "kickoff_utc": r.kickoff_utc.isoformat(), "home": r.home, "away": r.away}
+                        for r in upcoming.sort_values("kickoff_utc").itertuples()]}
+    output_dir.mkdir(parents=True, exist_ok=True)
+    tmp = output_dir / (UPCOMING_FIXTURES_FILE + ".tmp")
+    tmp.write_text(json.dumps(doc, indent=2) + "\n", encoding="utf-8")
+    tmp.replace(output_dir / UPCOMING_FIXTURES_FILE)
+
+
 def _write_outputs(output_dir: Path, stamp: str, run: dict, ledger: ProspectiveLedger | None,
                    registry: dict, now: datetime, grace_hours: float) -> None:
     (output_dir / "runs").mkdir(parents=True, exist_ok=True)
@@ -497,6 +532,7 @@ def _pipeline(args, now, stamp, registry, ledger: ProspectiveLedger, run: dict) 
     log.info("champion fitted on %d matches (sha256 %s)", len(training), data_hash[:12])
 
     played = set(zip(current.home, current.away))
+    _write_upcoming_fixtures(Path(args.output_dir), fixtures, played, now, run["sources"]["fixtures"])
     lead = now + timedelta(hours=args.min_lead_hours)
     in_horizon = fixtures[(fixtures.kickoff_utc > now) &
                           (fixtures.kickoff_utc <= now + timedelta(days=args.horizon_days))]
@@ -507,6 +543,7 @@ def _pipeline(args, now, stamp, registry, ledger: ProspectiveLedger, run: dict) 
 
     champ_p = np.zeros((len(window), 3))
     prior_only, existing_rows = [], []
+    detail: dict = {}
     for i, row in enumerate(window.itertuples()):
         key = fixture_key(row.kickoff_utc, row.home, row.away)
         existing = ledger.get_prediction(key) or ledger.find_prediction_for_match(key)
@@ -519,6 +556,9 @@ def _pipeline(args, now, stamp, registry, ledger: ProspectiveLedger, run: dict) 
         else:
             probs = np.asarray(model._predict_outcome_probs(params, mh, ma, allow_new_teams=True)[:3], dtype=float)
             champ_p[i] = probs / probs.sum()
+            detail[i] = champion_detail(model, params, mh, ma)
+            if np.max(np.abs(np.asarray(detail[i].pop("p_1x2")) - champ_p[i])) > 1e-6:
+                raise GateError(f"{key}: champion predict() and outcome probabilities disagree; refusing to record")
     challengers = challenger_probabilities(training, window, now, champ_p) if len(window) else {}
     registered = {c["model_id"]: c for c in registry.get("challengers", [])}
 
@@ -534,8 +574,11 @@ def _pipeline(args, now, stamp, registry, ledger: ProspectiveLedger, run: dict) 
             ledger.record_prediction(
                 fixture_key=key, predicted_at=now, kickoff_at=row.kickoff_utc.to_pydatetime(),
                 p_home=p[0], p_draw=p[1], p_away=p[2], model_version=params["model_version"],
+                expected_goals_home=detail[i]["expected_goals_home"],
+                expected_goals_away=detail[i]["expected_goals_away"],
                 code_sha=run["code_sha"], data_snapshot_hash=data_hash,
-                extra={**common, "prior_only": prior_only[i], **provenance})
+                extra={**common, "prior_only": prior_only[i], **provenance,
+                       "top_scorelines": detail[i]["top_scorelines"]})
             added += 1
             status = "recorded"
         else:

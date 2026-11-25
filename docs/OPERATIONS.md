@@ -21,7 +21,10 @@ ALEA needs **no API keys or credentials**. Every source it uses is public and li
 | Forecast window | `--horizon-days`, `--min-lead-hours` | 7 days, 48 h |
 | Settlement grace | `--grace-hours` | 60 h after expected full time |
 | Freshness limit | `--max-age-hours` | 240 h |
-| API | `ALEA_HOST`, `ALEA_PORT`, `ALEA_MAX_STALENESS_HOURS`, `ALEA_LOG_FILE`, `ALEA_REGISTRY` | 127.0.0.1, 8080, 216 h |
+| API server | `ALEA_LEDGER`, `ALEA_REGISTRY`, `ALEA_HOST`, `ALEA_PORT`, `ALEA_MAX_STALENESS_HOURS`, `ALEA_LOG_FILE` | seed ledger, `config/model_registry.json`, 127.0.0.1, 8080, 216 h, stderr |
+| Fixture list | `ALEA_FIXTURES` / `--fixtures` | `fixtures_upcoming.json` next to the ledger |
+| Web app | `ALEA_WEB_DIR` / `--web-dir` (`none` disables) | `web/` |
+| Hosted ledger sync | `ALEA_LEDGER_SYNC_URL`, `ALEA_LEDGER_SYNC_MINUTES` | off; 30 min. Example URL `https://raw.githubusercontent.com/gopolang-453/alea/prospective-ledger` |
 
 ## Run the tests
 
@@ -116,6 +119,8 @@ docker build -t alea-api . && docker run --rm -p 127.0.0.1:8080:8080 -v "$PWD/le
 
 | Endpoint | Returns |
 |---|---|
+| `GET /` | the web app (`docs/WEB_APP.md`) |
+| `GET /v1/fixtures/upcoming?days=1..60` | upcoming fixtures (OpenFootball, CC0) with `forecast_status`: `forecast_published`, `awaiting_forecast` (more than 48 h ahead) or `not_forecast` |
 | `GET /health` | `ok` / `degraded` (stale data, warnings) with HTTP 200, or `unhealthy` with HTTP 503 (ledger missing/corrupt, champion hash mismatch, foreign model version) |
 | `GET /v1/status` | champion, registry, ledger fingerprint, freshness, last run |
 | `GET /v1/predictions/upcoming?days=1..60&include_challengers=true` | pending champion forecasts with H/D/A probabilities (sum to 1), model version, timestamps, data freshness |
@@ -130,7 +135,7 @@ docker build -t alea-api . && docker run --rm -p 127.0.0.1:8080:8080 -v "$PWD/le
 - Every request is logged as one JSON line with a request id.
 - The API is read-only, and it never switches models: if the ledger contains a model version other than the registered champion, it refuses with a 503.
 
-**Deployment:** any host that can run the container and mount the ledger read-only will do. To refresh, pull the `prospective-ledger` branch periodically (for example with a cron `git pull`). The service has not been deployed to a public host; see the checklist.
+**Deployment:** set `ALEA_LEDGER_SYNC_URL` and the server downloads `ledger.sqlite` and `fixtures_upcoming.json` from the public data branch at start-up and every 30 minutes. A download replaces the served copy only if it passes the same append-only gate as the workflow (`verify_append_only_update`): integrity check ok, all triggers present, every existing row unchanged. Rollbacks, rewritten forecasts and corrupt files are refused and the last verified copy keeps being served; `/health` then reports `degraded`. No credentials are needed. Alternatively mount a ledger read-only and refresh it yourself. Hosting choice and costs: `docs/HOSTING_OPTIONS.md`; a ready Fly.io config is in `fly.toml`.
 
 ## Back up and restore
 
