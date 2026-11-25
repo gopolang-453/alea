@@ -19,6 +19,7 @@ from __future__ import annotations
 import hashlib
 import json
 import sqlite3
+from contextlib import contextmanager, nullcontext
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
@@ -49,6 +50,19 @@ _ALIASES: Dict[str, str] = {
     "nottingham forest": "nottingham forest",
     "leicester": "leicester city",
     "ipswich": "ipswich town",
+    # football-data.co.uk short forms seen in the 2026-27 feed and earlier
+    # Premier League seasons; OpenFootball uses the long forms.
+    "hull": "hull city",
+    "coventry": "coventry city",
+    "leeds": "leeds united",
+    "luton": "luton town",
+    "norwich": "norwich city",
+    "west brom": "west bromwich albion",
+    "sheffield utd": "sheffield united",
+    "cardiff": "cardiff city",
+    "swansea": "swansea city",
+    "stoke": "stoke city",
+    "huddersfield": "huddersfield town",
 }
 
 
@@ -56,7 +70,16 @@ def canonical_team(name: str) -> str:
     """Return a stable lowercase identifier for a team name."""
     if not isinstance(name, str) or not name.strip():
         raise ValueError(f"unreadable team name: {name!r}")
-    key = " ".join(name.lower().strip().replace(".", "").split())
+    key = " ".join(name.lower().strip().replace(".", "").replace("&", "and").split())
+    parts = key.split()
+    # OpenFootball writes "Liverpool FC", "AFC Bournemouth", "Sunderland AFC",
+    # "Hull City AFC". Strip one club-type suffix/prefix so every source maps
+    # to the same identifier.
+    if len(parts) > 1 and parts[-1] in ("fc", "afc"):
+        parts.pop()
+    if len(parts) > 1 and parts[0] in ("afc", "fc"):
+        parts.pop(0)
+    key = " ".join(parts)
     return _ALIASES.get(key, key)
 
 
@@ -105,6 +128,7 @@ class Snapshot:
             p = r.payload
             rows.append({
                 "Date": p["date"],
+                "Season": p.get("season"),
                 "HomeTeam": p["home"],
                 "AwayTeam": p["away"],
                 "FTHG": p["fthg"],
@@ -113,10 +137,10 @@ class Snapshot:
                 "source": r.source,
             })
         if not rows:
-            return pd.DataFrame(columns=["Date", "HomeTeam", "AwayTeam", "FTHG", "FTAG"])
+            return pd.DataFrame(columns=["Date", "Season", "HomeTeam", "AwayTeam", "FTHG", "FTAG"])
         df = pd.DataFrame(rows)
         df["Date"] = pd.to_datetime(df["Date"])
-        return df.sort_values("Date").reset_index(drop=True)
+        return df.sort_values(["Date", "HomeTeam", "AwayTeam"]).reset_index(drop=True)
 
 
 class DataStore:
@@ -129,7 +153,7 @@ class DataStore:
         self._record_index: Dict[tuple, Record] = {}
 
     def add(self, record: Record) -> bool:
-        if record.available_at.tzinfo is None:
+        if record.available_at.tzinfo is None or record.available_at.utcoffset() is None:
             raise ValueError("available_at must be timezone-aware")
         if not record.kind or not record.fixture_key or not record.source:
             raise ValueError("kind, fixture_key, and source are required")
@@ -149,7 +173,7 @@ class DataStore:
         return True
 
     def snapshot(self, as_of: datetime) -> Snapshot:
-        if as_of.tzinfo is None:
+        if as_of.tzinfo is None or as_of.utcoffset() is None:
             raise ValueError("as_of must be timezone-aware")
         visible = [r for r in self._records if r.available_at <= as_of]
         return Snapshot(as_of=as_of, records=visible)
@@ -173,6 +197,8 @@ class PersistentDataStore(DataStore):
     def __init__(self, database_path: str | Path) -> None:
         super().__init__()
         self.database_path = str(database_path)
+        if self.database_path != ":memory:":
+            Path(self.database_path).parent.mkdir(parents=True, exist_ok=True)
         self._conn = sqlite3.connect(self.database_path)
         self._conn.execute(
             """
@@ -204,11 +230,32 @@ class PersistentDataStore(DataStore):
                 )
             )
 
+    @contextmanager
+    def transaction(self):
+        """Atomic batch transaction, including rollback of the in-memory index."""
+        if self._conn is None:
+            raise RuntimeError("store is closed")
+        if self._conn.in_transaction:
+            yield
+            return
+        records_before = list(self._records)
+        index_before = dict(self._record_index)
+        self._conn.execute("BEGIN IMMEDIATE")
+        try:
+            yield
+            self._conn.commit()
+        except Exception:
+            self._conn.rollback()
+            self._records = records_before
+            self._record_index = index_before
+            raise
+
     def add(self, record: Record) -> bool:
         added = super().add(record)
         if not added:
             return False
         identity = (record.kind, record.fixture_key, record.source, record.source_id)
+        outer_transaction = self._conn.in_transaction
         try:
             self._conn.execute(
                 """
@@ -225,9 +272,11 @@ class PersistentDataStore(DataStore):
                     record.source_id or "",
                 ),
             )
-            self._conn.commit()
+            if not outer_transaction:
+                self._conn.commit()
         except Exception:
-            self._conn.rollback()
+            if not outer_transaction:
+                self._conn.rollback()
             self._record_index.pop(identity, None)
             self._records.pop()
             raise
@@ -257,7 +306,7 @@ def ingest_csv(
         raise FileNotFoundError(path)
     frame = pd.read_csv(path, encoding="utf-8-sig")
     require_columns(frame, ["Date", "HomeTeam", "AwayTeam", "FTHG", "FTAG"])
-    parsed_dates = pd.to_datetime(frame["Date"], dayfirst=True, errors="coerce")
+    parsed_dates = parse_match_dates(frame["Date"])
     if parsed_dates.isna().any():
         bad_rows = frame.index[parsed_dates.isna()].tolist()
         raise DataValidationError(f"unreadable match dates at CSV rows: {bad_rows[:10]}")
@@ -269,6 +318,23 @@ def ingest_csv(
         source=source,
         available_offset_hours=available_offset_hours,
     )
+
+
+def parse_match_dates(values: pd.Series) -> pd.Series:
+    """Parse football-data (dd/mm/yyyy, dd/mm/yy) or ISO (yyyy-mm-dd) dates.
+
+    Each value must match one explicit format; ambiguous free-form parsing is
+    not used, so a changed upstream format fails closed instead of silently
+    swapping day and month.
+    """
+    text = values.astype("string").str.strip()
+    parsed = pd.Series(pd.NaT, index=values.index, dtype="datetime64[ns]")
+    for fmt in ("%d/%m/%Y", "%d/%m/%y", "%Y-%m-%d"):
+        missing = parsed.isna()
+        if not missing.any():
+            break
+        parsed.loc[missing] = pd.to_datetime(text[missing], format=fmt, errors="coerce")
+    return parsed
 
 
 # ---------------------------------------------------------------------------
@@ -358,50 +424,69 @@ def ingest_results_frame(
     Returns the number of newly added records.
     """
     require_columns(df, ["Date", "HomeTeam", "AwayTeam", "FTHG", "FTAG"])
-    if available_offset_hours < 0:
-        raise ValueError("available_offset_hours must be non-negative")
+    needs_date_only_fallback = "available_at" not in df.columns or df["available_at"].isna().any()
+    if needs_date_only_fallback and (
+        not isinstance(available_offset_hours, (int, float)) or available_offset_hours < 24
+    ):
+        raise DataValidationError("date-only availability offset must be at least 24 hours")
     n = 0
-    for _, row in df.iterrows():
-        date = pd.Timestamp(row["Date"])
-        if pd.isna(date):
-            raise DataValidationError("invalid or missing match date")
-        match_day = date.date()
-        if "available_at" in df.columns and pd.notna(row.get("available_at")):
-            available_ts = pd.Timestamp(row["available_at"])
-            if available_ts.tzinfo is None:
-                raise DataValidationError("available_at values must be timezone-aware")
-            available = available_ts.tz_convert("UTC").to_pydatetime()
-        else:
-            # Date-only feeds lack kickoff/result-publication times. Delaying
-            # availability is safer than exposing a final score on match day.
-            day_start = pd.Timestamp(match_day).tz_localize("UTC")
-            available = (day_start + pd.Timedelta(hours=available_offset_hours)).to_pydatetime()
-        if available.date() < match_day:
-            raise DataValidationError("result cannot be available before its match date")
-        home = canonical_team(str(row["HomeTeam"]))
-        away = canonical_team(str(row["AwayTeam"]))
-        if home == away:
-            raise DataValidationError("a team cannot play itself")
-        try:
-            fthg = int(row["FTHG"])
-            ftag = int(row["FTAG"])
-        except (TypeError, ValueError, OverflowError) as exc:
-            raise DataValidationError("full-time goals must be non-negative integers") from exc
-        if fthg < 0 or ftag < 0 or fthg != row["FTHG"] or ftag != row["FTAG"]:
-            raise DataValidationError("full-time goals must be non-negative integers")
-        key = f"{match_day.isoformat()}|{home}|{away}"
-        rec = Record(
-            kind="result",
-            fixture_key=key,
-            available_at=available,
-            payload={
-                "date": match_day.isoformat(),
-                "home": home,
-                "away": away,
-                "fthg": fthg,
-                "ftag": ftag,
-            },
-            source=source,
-        )
-        n += int(store.add(rec))
+    transaction = store.transaction() if isinstance(store, PersistentDataStore) else nullcontext()
+    with transaction:
+        for _, row in df.iterrows():
+            date = pd.Timestamp(row["Date"])
+            if pd.isna(date):
+                raise DataValidationError("invalid or missing match date")
+            match_day = date.date()
+            if "available_at" in df.columns and pd.notna(row.get("available_at")):
+                available_ts = pd.Timestamp(row["available_at"])
+                if available_ts.tzinfo is None:
+                    raise DataValidationError("available_at values must be timezone-aware")
+                available = available_ts.tz_convert("UTC").to_pydatetime()
+            else:
+                # Date-only feeds lack kickoff/result-publication times. Delaying
+                # availability is safer than exposing a final score on match day.
+                day_start = pd.Timestamp(match_day).tz_localize("UTC")
+                available = (day_start + pd.Timedelta(hours=available_offset_hours)).to_pydatetime()
+            if available.date() < match_day:
+                raise DataValidationError("result cannot be available before its match date")
+            if pd.isna(row["HomeTeam"]) or pd.isna(row["AwayTeam"]):
+                raise DataValidationError("team names must not be missing")
+            home = canonical_team(row["HomeTeam"])
+            away = canonical_team(row["AwayTeam"])
+            if home == away:
+                raise DataValidationError("a team cannot play itself")
+            goals = []
+            for column in ("FTHG", "FTAG"):
+                value = row[column]
+                if isinstance(value, bool):
+                    raise DataValidationError("full-time goals must be non-negative integers")
+                try:
+                    numeric = float(value)
+                except (TypeError, ValueError, OverflowError) as exc:
+                    raise DataValidationError("full-time goals must be non-negative integers") from exc
+                if not pd.notna(numeric) or not numeric.is_integer() or numeric < 0 or numeric > 30:
+                    raise DataValidationError("full-time goals must be non-negative integers")
+                goals.append(int(numeric))
+            fthg, ftag = goals
+            season = None
+            if "Season" in df.columns and pd.notna(row.get("Season")):
+                season = str(row["Season"]).strip()
+                if not season:
+                    raise DataValidationError("season must not be an empty string")
+            key = f"{match_day.isoformat()}|{home}|{away}"
+            rec = Record(
+                kind="result",
+                fixture_key=key,
+                available_at=available,
+                payload={
+                    "date": match_day.isoformat(),
+                    "home": home,
+                    "away": away,
+                    "fthg": fthg,
+                    "ftag": ftag,
+                    **({"season": season} if season is not None else {}),
+                },
+                source=source,
+            )
+            n += int(store.add(rec))
     return n

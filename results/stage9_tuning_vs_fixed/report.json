@@ -1,0 +1,67 @@
+{
+  "created_at_utc": "2026-11-24T14:36:00.078653+00:00",
+  "baseline": "v2.4.1-fixed",
+  "candidate": "v2.4.1-tuned",
+  "acceptance_rule": "every period: log-loss diff CI95 upper < 0 and Brier diff <= 0",
+  "decision": "REJECT",
+  "periods": {
+    "development_walk_forward": {
+      "n": 1900,
+      "baseline": {
+        "log_loss": 0.9830516575429444,
+        "brier": 0.5844998439830883,
+        "rps": 0.20465287876484162,
+        "accuracy": 0.531578947368421
+      },
+      "candidate": {
+        "log_loss": 0.9943472563399702,
+        "brier": 0.5887928079420275,
+        "rps": 0.20662639327344876,
+        "accuracy": 0.5252631578947369
+      },
+      "max_abs_probability_difference": 0.348057829283677,
+      "paired_bootstrap": {
+        "method": "paired_iso_week_block_bootstrap",
+        "n_predictions": 1900,
+        "n_week_blocks": 177,
+        "bootstrap_samples": 2000,
+        "seed": 20261118,
+        "log_loss_difference_candidate_minus_baseline": 0.011295598797025847,
+        "log_loss_difference_ci95_lower": 0.0013855163266542376,
+        "log_loss_difference_ci95_upper": 0.02570657077696289,
+        "brier_difference_candidate_minus_baseline": 0.004292963958939197,
+        "brier_difference_ci95_lower": 0.0008888751264338869,
+        "brier_difference_ci95_upper": 0.007778212066922424
+      }
+    },
+    "final_holdout_2025-26": {
+      "n": 380,
+      "baseline": {
+        "log_loss": 1.024467184583004,
+        "brier": 0.6147092542037338,
+        "rps": 0.20796055030247187,
+        "accuracy": 0.4763157894736842
+      },
+      "candidate": {
+        "log_loss": 1.0278029912846915,
+        "brier": 0.616948122293196,
+        "rps": 0.208572950285163,
+        "accuracy": 0.4710526315789474
+      },
+      "max_abs_probability_difference": 0.14634492015701264,
+      "paired_bootstrap": {
+        "method": "paired_iso_week_block_bootstrap",
+        "n_predictions": 380,
+        "n_week_blocks": 36,
+        "bootstrap_samples": 2000,
+        "seed": 20261118,
+        "log_loss_difference_candidate_minus_baseline": 0.0033358067016877042,
+        "log_loss_difference_ci95_lower": -0.003573115870894218,
+        "log_loss_difference_ci95_upper": 0.01007778773838291,
+        "brier_difference_candidate_minus_baseline": 0.0022388680894622082,
+        "brier_difference_ci95_lower": -0.002254704472736578,
+        "brier_difference_ci95_upper": 0.006480047385860281
+      }
+    }
+  }
+}

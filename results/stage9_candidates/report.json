@@ -1,0 +1,481 @@
+{
+  "created_at_utc": "2026-11-24T14:27:50.762961+00:00",
+  "database_fingerprint": "37afdac1f532b27ec0009e1c754957b400a380f816b4e48adc23f165cf746f9b",
+  "champion_predictions": "results/stage9_mle/predictions.csv",
+  "protocol": {
+    "champion": "alea-dc-v2.4.1 fixed xi=0.0018 reg=1.0, weekly refit (Stage 9 runner output)",
+    "elo": {
+      "initial_rating": 1500.0,
+      "k_factor": 20.0,
+      "home_advantage": 50.0,
+      "source": "stages.stage3.team_features.elo_ratings defaults"
+    },
+    "form": {
+      "window": 5,
+      "ppg_prior_for_teams_with_fewer_than_3_matches": 1.0
+    },
+    "elo_burn_in_matches_excluded_from_mapping_training": 380,
+    "min_training_rows_for_feature_mappings": 380,
+    "min_prior_oos_rows_for_stackers": 380,
+    "stacker": "multinomial logistic, ridge 0.01, standardised inputs",
+    "ordered_logit_ridge": 0.001,
+    "bootstrap": "paired ISO-week block bootstrap, 2000 samples, seed 20261124",
+    "acceptance": "holdout log-loss diff CI95 upper < 0 AND holdout Brier diff <= 0 AND development log-loss diff < 0",
+    "candidates": [
+      "rate_baseline",
+      "elo_ordered_logit",
+      "form_ordered_logit",
+      "dc_restack_control",
+      "dc_plus_elo_stack",
+      "dc_plus_elo_form_stack",
+      "dc_rolling_temperature",
+      "dc_elo_equal_average"
+    ]
+  },
+  "n_rows_total": 2280,
+  "n_rows_scored_common": 1900,
+  "first_scored_date": "2021-08-13",
+  "periods": {
+    "development": {
+      "dc_champion": {
+        "n": 1520,
+        "log_loss": 0.968775189694571,
+        "brier": 0.5753860726567552,
+        "rps": 0.2000210835827671,
+        "accuracy": 0.5480263157894737,
+        "mean_p_draw": 0.22944067155184059,
+        "actual_draw_rate": 0.23026315789473684
+      },
+      "rate_baseline": {
+        "n": 1520,
+        "log_loss": 1.0652086380898023,
+        "brier": 0.6445459837972044,
+        "rps": 0.2335785260005802,
+        "accuracy": 0.4453947368421053,
+        "mean_p_draw": 0.2310602155846596,
+        "actual_draw_rate": 0.23026315789473684,
+        "vs_champion": {
+          "log_loss_diff": 0.09643344839523128,
+          "log_loss_ci95": [
+            0.07571823289696619,
+            0.11520146294132971
+          ],
+          "brier_diff": 0.0691599111404492,
+          "brier_ci95": [
+            0.054871002893519615,
+            0.08219085017851478
+          ],
+          "n_week_blocks": 143
+        }
+      },
+      "elo_ordered_logit": {
+        "n": 1520,
+        "log_loss": 0.9693389535053355,
+        "brier": 0.5759116009542847,
+        "rps": 0.19981501574770935,
+        "accuracy": 0.5394736842105263,
+        "mean_p_draw": 0.21778751249082895,
+        "actual_draw_rate": 0.23026315789473684,
+        "vs_champion": {
+          "log_loss_diff": 0.0005637638107645504,
+          "log_loss_ci95": [
+            -0.008793478880539156,
+            0.008852362089312263
+          ],
+          "brier_diff": 0.0005255282975295347,
+          "brier_ci95": [
+            -0.005866751046457275,
+            0.0060771931592367105
+          ],
+          "n_week_blocks": 143
+        }
+      },
+      "form_ordered_logit": {
+        "n": 1520,
+        "log_loss": 1.025741885655968,
+        "brier": 0.6152944527495572,
+        "rps": 0.2189599069717056,
+        "accuracy": 0.5026315789473684,
+        "mean_p_draw": 0.22603669330107418,
+        "actual_draw_rate": 0.23026315789473684,
+        "vs_champion": {
+          "log_loss_diff": 0.05696669596139679,
+          "log_loss_ci95": [
+            0.03908251709724698,
+            0.07485367097829915
+          ],
+          "brier_diff": 0.0399083800928019,
+          "brier_ci95": [
+            0.02777812881109276,
+            0.05236709706350961
+          ],
+          "n_week_blocks": 143
+        }
+      },
+      "dc_restack_control": {
+        "n": 1520,
+        "log_loss": 0.9780071289992069,
+        "brier": 0.5810077308827973,
+        "rps": 0.2022241141171185,
+        "accuracy": 0.5434210526315789,
+        "mean_p_draw": 0.22741867063428878,
+        "actual_draw_rate": 0.23026315789473684,
+        "vs_champion": {
+          "log_loss_diff": 0.009231939304636033,
+          "log_loss_ci95": [
+            0.0029283749819116,
+            0.015777347035549515
+          ],
+          "brier_diff": 0.005621658226042103,
+          "brier_ci95": [
+            0.001824102017239709,
+            0.009582000252867814
+          ],
+          "n_week_blocks": 143
+        }
+      },
+      "dc_plus_elo_stack": {
+        "n": 1520,
+        "log_loss": 0.9726928362184867,
+        "brier": 0.5775099440302152,
+        "rps": 0.200377909436238,
+        "accuracy": 0.5467105263157894,
+        "mean_p_draw": 0.22503654314072133,
+        "actual_draw_rate": 0.23026315789473684,
+        "vs_champion": {
+          "log_loss_diff": 0.003917646523915661,
+          "log_loss_ci95": [
+            -0.003262893887092624,
+            0.01085697007256592
+          ],
+          "brier_diff": 0.0021238713734598852,
+          "brier_ci95": [
+            -0.0022510020727407,
+            0.006428392607484022
+          ],
+          "n_week_blocks": 143
+        }
+      },
+      "dc_plus_elo_form_stack": {
+        "n": 1520,
+        "log_loss": 0.9737908691432356,
+        "brier": 0.5783162716531971,
+        "rps": 0.20067380991743913,
+        "accuracy": 0.5453947368421053,
+        "mean_p_draw": 0.22531902003686827,
+        "actual_draw_rate": 0.23026315789473684,
+        "vs_champion": {
+          "log_loss_diff": 0.005015679448664548,
+          "log_loss_ci95": [
+            -0.0025375063522909825,
+            0.01241097833981709
+          ],
+          "brier_diff": 0.002930198996441905,
+          "brier_ci95": [
+            -0.0019324048516413364,
+            0.0075639221691097555
+          ],
+          "n_week_blocks": 143
+        }
+      },
+      "dc_rolling_temperature": {
+        "n": 1520,
+        "log_loss": 0.9701693260590013,
+        "brier": 0.5762804067881007,
+        "rps": 0.20040517301816216,
+        "accuracy": 0.5480263157894737,
+        "mean_p_draw": 0.23656980184358517,
+        "actual_draw_rate": 0.23026315789473684,
+        "vs_champion": {
+          "log_loss_diff": 0.0013941363644302206,
+          "log_loss_ci95": [
+            -0.00041899689065067326,
+            0.003152077989129754
+          ],
+          "brier_diff": 0.0008943341313454403,
+          "brier_ci95": [
+            -0.0002171992159104442,
+            0.0020017497128090936
+          ],
+          "n_week_blocks": 143
+        }
+      },
+      "dc_elo_equal_average": {
+        "n": 1520,
+        "log_loss": 0.9658870813154725,
+        "brier": 0.5735501685674351,
+        "rps": 0.19898440913937832,
+        "accuracy": 0.5453947368421053,
+        "mean_p_draw": 0.22361409202133475,
+        "actual_draw_rate": 0.23026315789473684,
+        "vs_champion": {
+          "log_loss_diff": -0.0028881083790984283,
+          "log_loss_ci95": [
+            -0.007757655380501596,
+            0.0012880361680383358
+          ],
+          "brier_diff": -0.001835904089320113,
+          "brier_ci95": [
+            -0.005066643884877977,
+            0.0009868911291293905
+          ],
+          "n_week_blocks": 143
+        }
+      }
+    },
+    "final_holdout": {
+      "dc_champion": {
+        "n": 380,
+        "log_loss": 1.0273535005453263,
+        "brier": 0.6163659087570682,
+        "rps": 0.2088080577501057,
+        "accuracy": 0.47368421052631576,
+        "mean_p_draw": 0.24428116570561476,
+        "actual_draw_rate": 0.2736842105263158
+      },
+      "rate_baseline": {
+        "n": 380,
+        "log_loss": 1.084776435566953,
+        "brier": 0.6563790973345116,
+        "rps": 0.22792317535472256,
+        "accuracy": 0.4263157894736842,
+        "mean_p_draw": 0.23197218231184832,
+        "actual_draw_rate": 0.2736842105263158,
+        "vs_champion": {
+          "log_loss_diff": 0.05742293502162672,
+          "log_loss_ci95": [
+            0.020446096069540825,
+            0.09275961139103547
+          ],
+          "brier_diff": 0.040013188577443334,
+          "brier_ci95": [
+            0.013237038667643496,
+            0.06460851697071486
+          ],
+          "n_week_blocks": 36
+        }
+      },
+      "elo_ordered_logit": {
+        "n": 380,
+        "log_loss": 1.0278522915419515,
+        "brier": 0.6184186130242244,
+        "rps": 0.20875424557704186,
+        "accuracy": 0.48157894736842105,
+        "mean_p_draw": 0.2298533198479077,
+        "actual_draw_rate": 0.2736842105263158,
+        "vs_champion": {
+          "log_loss_diff": 0.000498790996625153,
+          "log_loss_ci95": [
+            -0.015279157462940349,
+            0.01658036391814038
+          ],
+          "brier_diff": 0.0020527042671561885,
+          "brier_ci95": [
+            -0.0090506312722511,
+            0.012944833612457317
+          ],
+          "n_week_blocks": 36
+        }
+      },
+      "form_ordered_logit": {
+        "n": 380,
+        "log_loss": 1.0679001511336395,
+        "brier": 0.6460203996150334,
+        "rps": 0.22178485329791803,
+        "accuracy": 0.4394736842105263,
+        "mean_p_draw": 0.23174146538016957,
+        "actual_draw_rate": 0.2736842105263158,
+        "vs_champion": {
+          "log_loss_diff": 0.04054665058831319,
+          "log_loss_ci95": [
+            0.011442574780754135,
+            0.07222408148734988
+          ],
+          "brier_diff": 0.02965449085796512,
+          "brier_ci95": [
+            0.008674907004493814,
+            0.05304032965516206
+          ],
+          "n_week_blocks": 36
+        }
+      },
+      "dc_restack_control": {
+        "n": 380,
+        "log_loss": 1.0280626661332752,
+        "brier": 0.6166362418938172,
+        "rps": 0.20880978691260152,
+        "accuracy": 0.4842105263157895,
+        "mean_p_draw": 0.2365220816505201,
+        "actual_draw_rate": 0.2736842105263158,
+        "vs_champion": {
+          "log_loss_diff": 0.0007091655879491445,
+          "log_loss_ci95": [
+            -0.006877472355943817,
+            0.008607121302808525
+          ],
+          "brier_diff": 0.00027033313674896647,
+          "brier_ci95": [
+            -0.004447620467142658,
+            0.005170605665080827
+          ],
+          "n_week_blocks": 36
+        }
+      },
+      "dc_plus_elo_stack": {
+        "n": 380,
+        "log_loss": 1.0243737080096675,
+        "brier": 0.6152693652875526,
+        "rps": 0.20777297290406718,
+        "accuracy": 0.47368421052631576,
+        "mean_p_draw": 0.23383122786611016,
+        "actual_draw_rate": 0.2736842105263158,
+        "vs_champion": {
+          "log_loss_diff": -0.0029797925356588994,
+          "log_loss_ci95": [
+            -0.01163156962332461,
+            0.005647183318949103
+          ],
+          "brier_diff": -0.0010965434695156993,
+          "brier_ci95": [
+            -0.00679139154333958,
+            0.004647889901916978
+          ],
+          "n_week_blocks": 36
+        }
+      },
+      "dc_plus_elo_form_stack": {
+        "n": 380,
+        "log_loss": 1.0249998287526498,
+        "brier": 0.6159268025631889,
+        "rps": 0.2079535094157244,
+        "accuracy": 0.4763157894736842,
+        "mean_p_draw": 0.23395421997873456,
+        "actual_draw_rate": 0.2736842105263158,
+        "vs_champion": {
+          "log_loss_diff": -0.0023536717926762206,
+          "log_loss_ci95": [
+            -0.010913164357361303,
+            0.006414374150024615
+          ],
+          "brier_diff": -0.0004391061938793657,
+          "brier_ci95": [
+            -0.006490357336518206,
+            0.005534744386438744
+          ],
+          "n_week_blocks": 36
+        }
+      },
+      "dc_rolling_temperature": {
+        "n": 380,
+        "log_loss": 1.0272364884159968,
+        "brier": 0.6162823188469405,
+        "rps": 0.20877969121778364,
+        "accuracy": 0.47368421052631576,
+        "mean_p_draw": 0.24598499147847847,
+        "actual_draw_rate": 0.2736842105263158,
+        "vs_champion": {
+          "log_loss_diff": -0.00011701212932941038,
+          "log_loss_ci95": [
+            -0.0008775076267654475,
+            0.0006581540528692672
+          ],
+          "brier_diff": -8.358991012780801e-05,
+          "brier_ci95": [
+            -0.0006144901981473275,
+            0.00046872220362452146
+          ],
+          "n_week_blocks": 36
+        }
+      },
+      "dc_elo_equal_average": {
+        "n": 380,
+        "log_loss": 1.0243392169820404,
+        "brier": 0.6152494994022647,
+        "rps": 0.20782832270154397,
+        "accuracy": 0.46842105263157896,
+        "mean_p_draw": 0.23706724277676122,
+        "actual_draw_rate": 0.2736842105263158,
+        "vs_champion": {
+          "log_loss_diff": -0.003014283563285719,
+          "log_loss_ci95": [
+            -0.010754254937348948,
+            0.004806616565617038
+          ],
+          "brier_diff": -0.0011164093548035727,
+          "brier_ci95": [
+            -0.00659796071048276,
+            0.004284593540939926
+          ],
+          "n_week_blocks": 36
+        }
+      }
+    }
+  },
+  "by_season": {
+    "2021-22": {
+      "dc_champion": 0.9553,
+      "rate_baseline": 1.0702,
+      "elo_ordered_logit": 0.9644,
+      "form_ordered_logit": 1.0341,
+      "dc_restack_control": 0.9753,
+      "dc_plus_elo_stack": 0.9747,
+      "dc_plus_elo_form_stack": 0.9778,
+      "dc_rolling_temperature": 0.9591,
+      "dc_elo_equal_average": 0.9572
+    },
+    "2022-23": {
+      "dc_champion": 1.0021,
+      "rate_baseline": 1.0558,
+      "elo_ordered_logit": 0.9894,
+      "form_ordered_logit": 1.0294,
+      "dc_restack_control": 1.0028,
+      "dc_plus_elo_stack": 0.9943,
+      "dc_plus_elo_form_stack": 0.993,
+      "dc_rolling_temperature": 1.0015,
+      "dc_elo_equal_average": 0.9912
+    },
+    "2023-24": {
+      "dc_champion": 0.9273,
+      "rate_baseline": 1.0548,
+      "elo_ordered_logit": 0.9318,
+      "form_ordered_logit": 0.999,
+      "dc_restack_control": 0.937,
+      "dc_plus_elo_stack": 0.9315,
+      "dc_plus_elo_form_stack": 0.9326,
+      "dc_rolling_temperature": 0.9296,
+      "dc_elo_equal_average": 0.927
+    },
+    "2024-25": {
+      "dc_champion": 0.9904,
+      "rate_baseline": 1.08,
+      "elo_ordered_logit": 0.9918,
+      "form_ordered_logit": 1.0405,
+      "dc_restack_control": 0.9969,
+      "dc_plus_elo_stack": 0.9902,
+      "dc_plus_elo_form_stack": 0.9917,
+      "dc_rolling_temperature": 0.9905,
+      "dc_elo_equal_average": 0.9881
+    },
+    "2025-26": {
+      "dc_champion": 1.0274,
+      "rate_baseline": 1.0848,
+      "elo_ordered_logit": 1.0279,
+      "form_ordered_logit": 1.0679,
+      "dc_restack_control": 1.0281,
+      "dc_plus_elo_stack": 1.0244,
+      "dc_plus_elo_form_stack": 1.025,
+      "dc_rolling_temperature": 1.0272,
+      "dc_elo_equal_average": 1.0243
+    }
+  },
+  "decisions": {
+    "rate_baseline": "REJECT",
+    "elo_ordered_logit": "REJECT",
+    "form_ordered_logit": "REJECT",
+    "dc_restack_control": "REJECT",
+    "dc_plus_elo_stack": "REJECT",
+    "dc_plus_elo_form_stack": "REJECT",
+    "dc_rolling_temperature": "REJECT",
+    "dc_elo_equal_average": "REJECT"
+  }
+}

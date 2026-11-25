@@ -30,11 +30,21 @@ class PredictionRecord:
 
 
 def _validate_probs(p_home: float, p_draw: float, p_away: float) -> None:
-    total = p_home + p_draw + p_away
-    if not (0.99 <= total <= 1.01):
-        raise ValueError(f"probabilities must sum to 1, got {total}")
-    if min(p_home, p_draw, p_away) < 0:
-        raise ValueError("negative probability")
+    values = np.asarray([p_home, p_draw, p_away], dtype=float)
+    if not np.all(np.isfinite(values)):
+        raise ValueError("probabilities must be finite")
+    if np.any(values < 0) or np.any(values > 1):
+        raise ValueError("each probability must be between 0 and 1")
+    total = float(values.sum())
+    if not np.isclose(total, 1.0, atol=1e-8, rtol=0.0):
+        raise ValueError(f"probabilities must sum to 1 within 1e-8, got {total}")
+
+
+def _outcome_index(outcome: Optional[str]) -> int:
+    try:
+        return {"H": 0, "D": 1, "A": 2}[outcome]
+    except (KeyError, TypeError):
+        raise ValueError(f"outcome must be H, D or A; got {outcome!r}")
 
 
 def log_loss(records: Sequence[PredictionRecord]) -> Optional[float]:
@@ -44,7 +54,8 @@ def log_loss(records: Sequence[PredictionRecord]) -> Optional[float]:
         if r.outcome is None:
             continue
         _validate_probs(r.p_home, r.p_draw, r.p_away)
-        p = {"H": r.p_home, "D": r.p_draw, "A": r.p_away}[r.outcome]
+        idx = _outcome_index(r.outcome)
+        p = (r.p_home, r.p_draw, r.p_away)[idx]
         losses.append(-np.log(max(p, 1e-15)))
     if not losses:
         return None
@@ -58,7 +69,8 @@ def brier_score(records: Sequence[PredictionRecord]) -> Optional[float]:
         if r.outcome is None:
             continue
         _validate_probs(r.p_home, r.p_draw, r.p_away)
-        actual = {"H": [1, 0, 0], "D": [0, 1, 0], "A": [0, 0, 1]}[r.outcome]
+        actual = [0, 0, 0]
+        actual[_outcome_index(r.outcome)] = 1
         pred = [r.p_home, r.p_draw, r.p_away]
         scores.append(sum((a - p) ** 2 for a, p in zip(actual, pred)))
     if not scores:
@@ -70,44 +82,71 @@ def ensemble_average(
     records_by_model: Dict[str, Sequence[PredictionRecord]],
     weights: Optional[Dict[str, float]] = None,
 ) -> List[PredictionRecord]:
-    """
-    Produce a probability-weighted average ensemble.
-    If weights is None, equal weights are used.
-    Only fixtures present in every model are included.
-    """
+    """Average aligned, validated model probabilities; reject ambiguous inputs."""
     if not records_by_model:
         return []
     models = list(records_by_model.keys())
-    if weights is None:
-        weights = {m: 1.0 / len(models) for m in models}
-    else:
-        s = sum(weights.values())
-        if s <= 0:
-            raise ValueError("weights must sum to a positive number")
-        weights = {m: w / s for m, w in weights.items()}
+    if len(set(models)) != len(models) or any(not isinstance(m, str) or not m for m in models):
+        raise ValueError("model names must be unique non-empty strings")
 
-    # Index by fixture
+    if weights is None:
+        normalised = {m: 1.0 / len(models) for m in models}
+    else:
+        if set(weights) != set(models):
+            raise ValueError("weights must contain exactly one entry for every model")
+        raw = {}
+        for model in models:
+            try:
+                weight = float(weights[model])
+            except (TypeError, ValueError) as exc:
+                raise ValueError(f"invalid weight for {model}") from exc
+            if not np.isfinite(weight) or weight < 0:
+                raise ValueError("weights must be finite and non-negative")
+            raw[model] = weight
+        total_weight = sum(raw.values())
+        if total_weight <= 0:
+            raise ValueError("weights must sum to a positive number")
+        normalised = {m: w / total_weight for m, w in raw.items()}
+
     by_fix: Dict[str, Dict[str, PredictionRecord]] = {}
-    for m, recs in records_by_model.items():
-        for r in recs:
-            by_fix.setdefault(r.fixture_key, {})[m] = r
+    for model, recs in records_by_model.items():
+        for record in recs:
+            if record.model != model:
+                raise ValueError(f"record model {record.model!r} does not match collection {model!r}")
+            if not record.fixture_key:
+                raise ValueError("fixture_key must be non-empty")
+            _validate_probs(record.p_home, record.p_draw, record.p_away)
+            if record.outcome is not None:
+                _outcome_index(record.outcome)
+            model_map = by_fix.setdefault(record.fixture_key, {})
+            if model in model_map:
+                raise ValueError(f"duplicate prediction for {model!r}, fixture {record.fixture_key!r}")
+            model_map[model] = record
 
     out = []
-    for fix, model_map in by_fix.items():
-        if set(model_map.keys()) != set(models):
-            continue  # require all models
-        ph = sum(weights[m] * model_map[m].p_home for m in models)
-        pd = sum(weights[m] * model_map[m].p_draw for m in models)
-        pa = sum(weights[m] * model_map[m].p_away for m in models)
-        # renormalise in case of floating point
-        total = ph + pd + pa
+    for fixture_key in sorted(by_fix):
+        model_map = by_fix[fixture_key]
+        if set(model_map) != set(models):
+            missing = sorted(set(models) - set(model_map))
+            raise ValueError(
+                f"fixture {fixture_key!r} is missing predictions from models: {missing}"
+            )
+        outcomes = {record.outcome for record in model_map.values() if record.outcome is not None}
+        if len(outcomes) > 1:
+            raise ValueError(f"models disagree on actual outcome for fixture {fixture_key!r}")
+        outcome = next(iter(outcomes)) if outcomes else None
+        probs = [
+            sum(normalised[m] * getattr(model_map[m], field) for m in models)
+            for field in ("p_home", "p_draw", "p_away")
+        ]
+        total = sum(probs)
         out.append(PredictionRecord(
             model="ensemble",
-            fixture_key=fix,
-            p_home=ph / total,
-            p_draw=pd / total,
-            p_away=pa / total,
-            outcome=model_map[models[0]].outcome,
+            fixture_key=fixture_key,
+            p_home=probs[0] / total,
+            p_draw=probs[1] / total,
+            p_away=probs[2] / total,
+            outcome=outcome,
         ))
     return out
 

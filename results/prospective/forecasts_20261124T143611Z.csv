@@ -1,0 +1,11 @@
+fixture_key,kickoff_utc,home,away,p_home,p_draw,p_away,prior_only,status
+2026-11-28|leeds united|coventry city,2026-11-28T15:00:00+00:00,leeds united,coventry city,0.5542,0.2334,0.2123,False,recorded
+2026-11-28|ipswich town|aston villa,2026-11-28T15:00:00+00:00,ipswich town,aston villa,0.2327,0.2279,0.5394,False,recorded
+2026-11-28|arsenal|manchester city,2026-11-28T15:00:00+00:00,arsenal,manchester city,0.4601,0.2768,0.2631,False,recorded
+2026-11-28|manchester united|brentford,2026-11-28T15:00:00+00:00,manchester united,brentford,0.3988,0.2511,0.3501,False,recorded
+2026-11-28|everton|liverpool,2026-11-28T15:00:00+00:00,everton,liverpool,0.2527,0.2698,0.4775,False,recorded
+2026-11-28|fulham|bournemouth,2026-11-28T15:00:00+00:00,fulham,bournemouth,0.3739,0.2796,0.3465,False,recorded
+2026-11-28|nottingham forest|chelsea,2026-11-28T15:00:00+00:00,nottingham forest,chelsea,0.3624,0.2673,0.3703,False,recorded
+2026-11-28|brighton and hove albion|newcastle united,2026-11-28T15:00:00+00:00,brighton and hove albion,newcastle united,0.5028,0.2402,0.257,False,recorded
+2026-11-28|sunderland|tottenham,2026-11-28T15:00:00+00:00,sunderland,tottenham,0.3543,0.2954,0.3503,False,recorded
+2026-11-28|crystal palace|hull city,2026-11-28T15:00:00+00:00,crystal palace,hull city,0.2967,0.3092,0.3942,False,recorded

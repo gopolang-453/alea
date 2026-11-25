@@ -2,14 +2,21 @@ name: ALEA tests
 
 on:
   push:
-    branches: [main]
+    branches: [main, "repair/**"]
     paths:
       - "alea_predictor_v2_4_1.py"
       - "dev/**"
       - "stages/**"
       - "tests/**"
       - "requirements.txt"
+      - "requirements-dev.txt"
+      - "pytest.ini"
+      - "scripts/**"
+      - "config/**"
+      - "Dockerfile"
+      - "SHA256SUMS.txt"
       - ".github/workflows/stage1-regression.yml"
+      - ".github/workflows/weekly-prospective-forecast.yml"
   pull_request:
     paths:
       - "alea_predictor_v2_4_1.py"
@@ -17,16 +24,27 @@ on:
       - "stages/**"
       - "tests/**"
       - "requirements.txt"
+      - "requirements-dev.txt"
+      - "pytest.ini"
+      - "scripts/**"
+      - "config/**"
+      - "Dockerfile"
+      - "SHA256SUMS.txt"
       - ".github/workflows/stage1-regression.yml"
+      - ".github/workflows/weekly-prospective-forecast.yml"
   workflow_dispatch:
 
 permissions:
   contents: read
 
+concurrency:
+  group: alea-tests-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   tests:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 40
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -38,6 +56,46 @@ jobs:
       - name: Install project and test dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -r requirements.txt pytest
+          python -m pip install -r requirements-dev.txt
       - name: Run repository tests
-        run: python -m pytest -q tests dev/tests stages/stage9/tests
+        run: python -m pytest -q
+      - name: Scan working tree for high-confidence secrets
+        run: python scripts/security_check.py
+      - name: Verify frozen baselines
+        run: sha256sum -c SHA256SUMS.txt
+      - name: Stage 12 drill on the committed ledger and the HTTP service
+        run: python scripts/recovery_drill.py --ledger results/prospective/ledger.sqlite --report stage12_drill.json
+      - name: Upload drill report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stage12-drill-${{ github.run_id }}
+          path: stage12_drill.json
+
+  api-container:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Build API image
+        run: docker build -t alea-api .
+      - name: Run container on a read-only copy of the committed ledger
+        run: |
+          mkdir -p ledger-data && cp results/prospective/ledger.sqlite ledger-data/
+          docker run -d --name alea -p 8080:8080 -v "$PWD/ledger-data:/data:ro" alea-api
+          for i in $(seq 1 30); do curl -fs http://127.0.0.1:8080/health > health.json && break; sleep 1; done
+          cat health.json
+          python3 -c "import json; h=json.load(open('health.json')); assert h['status'] in ('ok','degraded'), h; assert h['champion']=='alea-dc-v2.4.1'"
+          curl -fs "http://127.0.0.1:8080/v1/predictions/history?limit=500" > history.json
+          python3 -c "import json; h=json.load(open('history.json')); assert h['total']>=10; assert all(abs(sum(p['probabilities'].values())-1)<1e-9 for p in h['predictions'])"
+          code=$(curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:8080/v1/predictions/history?limit=-1"); test "$code" = 400
+          code=$(curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:8080/v1/predictions/nope"); test "$code" = 404 -o "$code" = 400
+          docker logs alea 2>&1 | tail -20
+      - name: Container refuses a corrupted ledger (503)
+        run: |
+          docker rm -f alea
+          mkdir -p bad && head -c 4096 /dev/urandom > bad/ledger.sqlite
+          docker run -d --name alea-bad -p 8081:8080 -v "$PWD/bad:/data:ro" alea-api
+          sleep 3
+          code=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8081/health); echo "health=$code"; test "$code" = 503

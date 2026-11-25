@@ -1,0 +1,142 @@
+{
+  "run_at_utc": "2026-11-24T14:36:11.901854+00:00",
+  "model": "v2.4.1",
+  "xi": 0.0018,
+  "reg": 1.0,
+  "inputs": {
+    "fixtures_json_sha256": "bb91f0ab3e8359df163bb9ec98549bfed85e200dd4c32f3bd606b5890d932dd2",
+    "results_csv_sha256": "21d2b96792bd0bc8a324123ae68eaf60b981c5a016c538d086e8d8a5cbedd95a"
+  },
+  "gates": {
+    "fixtures_due": 110,
+    "due_without_result": [],
+    "cross_checked_results": 50,
+    "cross_check_disagreements": [],
+    "freshness": {
+      "status": "fresh",
+      "age_hours": 16.603306070555558,
+      "max_age_hours": 240.0,
+      "latest_result_available_at": "2026-11-23T22:00:00+00:00"
+    }
+  },
+  "ledger_fingerprint": "cf486e7d30701173e9f7eea3d7f74fdbbb19ca13b43470e489f74ad2c58381b8",
+  "status": "ok",
+  "training_matches": 2770,
+  "training_data_sha256": "3768d90f115ce4bdd4d39155b9d128033a10dbcbcfa97dbe43b12cea1cface50",
+  "code_sha": "a9b812a84132965310cff0e2c9ada94581105359",
+  "forecasts_recorded": 10,
+  "forecasts_already_in_ledger": 0,
+  "outcomes_settled": 0,
+  "forecasts": [
+    {
+      "fixture_key": "2026-11-28|leeds united|coventry city",
+      "kickoff_utc": "2026-11-28T15:00:00+00:00",
+      "home": "leeds united",
+      "away": "coventry city",
+      "p_home": 0.5542,
+      "p_draw": 0.2334,
+      "p_away": 0.2123,
+      "prior_only": false,
+      "status": "recorded"
+    },
+    {
+      "fixture_key": "2026-11-28|ipswich town|aston villa",
+      "kickoff_utc": "2026-11-28T15:00:00+00:00",
+      "home": "ipswich town",
+      "away": "aston villa",
+      "p_home": 0.2327,
+      "p_draw": 0.2279,
+      "p_away": 0.5394,
+      "prior_only": false,
+      "status": "recorded"
+    },
+    {
+      "fixture_key": "2026-11-28|arsenal|manchester city",
+      "kickoff_utc": "2026-11-28T15:00:00+00:00",
+      "home": "arsenal",
+      "away": "manchester city",
+      "p_home": 0.4601,
+      "p_draw": 0.2768,
+      "p_away": 0.2631,
+      "prior_only": false,
+      "status": "recorded"
+    },
+    {
+      "fixture_key": "2026-11-28|manchester united|brentford",
+      "kickoff_utc": "2026-11-28T15:00:00+00:00",
+      "home": "manchester united",
+      "away": "brentford",
+      "p_home": 0.3988,
+      "p_draw": 0.2511,
+      "p_away": 0.3501,
+      "prior_only": false,
+      "status": "recorded"
+    },
+    {
+      "fixture_key": "2026-11-28|everton|liverpool",
+      "kickoff_utc": "2026-11-28T15:00:00+00:00",
+      "home": "everton",
+      "away": "liverpool",
+      "p_home": 0.2527,
+      "p_draw": 0.2698,
+      "p_away": 0.4775,
+      "prior_only": false,
+      "status": "recorded"
+    },
+    {
+      "fixture_key": "2026-11-28|fulham|bournemouth",
+      "kickoff_utc": "2026-11-28T15:00:00+00:00",
+      "home": "fulham",
+      "away": "bournemouth",
+      "p_home": 0.3739,
+      "p_draw": 0.2796,
+      "p_away": 0.3465,
+      "prior_only": false,
+      "status": "recorded"
+    },
+    {
+      "fixture_key": "2026-11-28|nottingham forest|chelsea",
+      "kickoff_utc": "2026-11-28T15:00:00+00:00",
+      "home": "nottingham forest",
+      "away": "chelsea",
+      "p_home": 0.3624,
+      "p_draw": 0.2673,
+      "p_away": 0.3703,
+      "prior_only": false,
+      "status": "recorded"
+    },
+    {
+      "fixture_key": "2026-11-28|brighton and hove albion|newcastle united",
+      "kickoff_utc": "2026-11-28T15:00:00+00:00",
+      "home": "brighton and hove albion",
+      "away": "newcastle united",
+      "p_home": 0.5028,
+      "p_draw": 0.2402,
+      "p_away": 0.257,
+      "prior_only": false,
+      "status": "recorded"
+    },
+    {
+      "fixture_key": "2026-11-28|sunderland|tottenham",
+      "kickoff_utc": "2026-11-28T15:00:00+00:00",
+      "home": "sunderland",
+      "away": "tottenham",
+      "p_home": 0.3543,
+      "p_draw": 0.2954,
+      "p_away": 0.3503,
+      "prior_only": false,
+      "status": "recorded"
+    },
+    {
+      "fixture_key": "2026-11-28|crystal palace|hull city",
+      "kickoff_utc": "2026-11-28T15:00:00+00:00",
+      "home": "crystal palace",
+      "away": "hull city",
+      "p_home": 0.2967,
+      "p_draw": 0.3092,
+      "p_away": 0.3942,
+      "prior_only": false,
+      "status": "recorded"
+    }
+  ]
+}

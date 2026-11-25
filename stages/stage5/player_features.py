@@ -11,7 +11,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from data_store import DataStore, Record, canonical_team, team_id
+from ..stage1.data_store import DataStore, Record, canonical_team, team_id
 
 
 def _ensure_aware(dt: datetime) -> datetime:
@@ -82,31 +82,19 @@ def player_impact_stub(
     player: str,
     position: str,
     status: str,
-) -> Dict[str, float]:
+) -> Dict[str, Any]:
+    """Return player-absence metadata without fabricating a numeric impact.
+
+    Positional weights are not a trained or validated estimate. Until a
+    timestamped historical player dataset and an out-of-sample impact model
+    exist, impact is explicitly None and must not enter match probabilities.
     """
-    Simple position-aware impact placeholder.
-    This is NOT a trained model. It only encodes the principle that
-    a starting goalkeeper absence is larger than a reserve winger absence.
-    Real impact must be estimated from data in a later evaluation stage.
-    """
-    base = {
-        "goalkeeper": 0.15,
-        "defender": 0.08,
-        "midfielder": 0.07,
-        "forward": 0.10,
-        "winger": 0.06,
-    }.get(position.lower(), 0.05)
-    multiplier = {
-        "injured": 1.0,
-        "suspended": 1.0,
-        "doubtful": 0.4,
-        "returning": 0.3,
-    }.get(status.lower(), 0.5)
     return {
         "player": player,
         "position": position,
         "status": status,
-        "impact": round(base * multiplier, 3),
+        "impact": None,
+        "impact_status": "not_estimated_untrained_placeholder",
     }
 
 
@@ -128,11 +116,11 @@ def unavailable_impact(
             position=rec.get("position", "unknown"),
             status=rec.get("status", "injured"),
         ))
-    total = sum(i["impact"] for i in impacts)
     return {
         "team": canonical_team(team),
         "as_of": as_of.isoformat(),
         "players": impacts,
-        "total_impact": round(total, 3),
+        "total_impact": None,
+        "impact_status": "not_estimated_no_trained_model",
         "count": len(impacts),
     }

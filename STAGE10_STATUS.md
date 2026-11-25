@@ -1,21 +1,45 @@
-# Stage 10 — Automation status
-**Date:** 18 November 2026
+> **Superseded (24 Nov 2026):** see [ALEA_3.0_STATUS_REPORT_2026-11-24.md](ALEA_3.0_STATUS_REPORT_2026-11-24.md) for current, re-measured status. Kept for history only.
 
-## What exists and is tested
-- Model registry with promote / rollback (`stages/stage10/automation.py`) — unit tests passed previously.
-- Result validation (negative goals, missing columns) — unit tests passed.
-- Stage 1 CSV ingest is now duplicate-safe and has been run on real EPL data.
+# Stage 10 — Automation status (reconciled 21 Nov 2026)
 
-## What is not yet production
-- No scheduled fixture updater connected to a live source.
-- No automatic xG / injury retrieval.
-- No daemon that retrains on a schedule and promotes only if metrics improve.
-- Recovery is tested at the contract level, not inside a long-running process.
+## Implementation status
 
-## Pass condition status
-- 10.1 Fixtures auto-update: **not done** (no live fixture feed wired).
-- 10.2 Results/stats auto-update: **partial** (manual CSV ingest works and is duplicate-safe; no live updater).
-- 10.3 Auto training + promote only if better: **contract only** (registry exists; no trained candidate comparison on real data).
-- 10.4 Recovery: **contract tested** (rollback unit test passed).
+| Component | Status |
+|-----------|--------|
+| `stages/stage10/automation.py` (ModelRegistry) | **Implemented + unit-tested** — authoritative fail-closed registry |
+| `stages/stage10/champion_comparison.py` | **Implemented** — paired head-to-head on identical post-cutoff fixtures |
+| `scripts/refresh_and_retrain.py` | **Implemented** — reconciled to ModelRegistry API; no force path |
+| `scripts/train_and_register_champion.py` | **Implemented** — register only; optional seed when no champion; no `--force` |
+| Regression suite (`tests/test_stage10_champion_comparison.py`) | **12/12 passed** (synthetic data) |
 
-**Stage 10 is not complete.** The contracts are in place. The live/scheduled pipeline is the remaining work.
+## What the gates enforce
+
+- Missing required metrics → reject
+- Holdout sample too small → reject
+- Log-loss CI includes zero → reject
+- Point-estimate worse than baseline → reject
+- Comparison baseline is not the current champion → reject
+- Artifact SHA-256 mismatch (tamper) → reject
+- Valid improvement with matching baseline metrics → promote
+- Rollback restores previous verified champion
+- Failed register never creates a champion
+
+## What is NOT claimed
+
+- No real Premier League data was used for these tests. All results are **synthetic**.
+- No live scheduler or cron is installed.
+- No production promotion of a real EPL model has been performed.
+- Stage 13 remains **NOT COMPLETE**.
+
+## Commands that were actually run
+
+```bash
+PYTHONPATH=. python -m pytest tests/test_stage10_champion_comparison.py -v
+# 12 passed in ~1.1s
+```
+
+## Remaining blockers for real-data Stage 10
+
+1. Internet-capable environment + OpenFootball (or equivalent) historical data.
+2. Successful run of `refresh_and_retrain.py` against real data with the frozen champion.
+3. Green GitHub Actions run on the final commit of this branch.

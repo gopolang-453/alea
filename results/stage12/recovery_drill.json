@@ -1,0 +1,16 @@
+{
+  "artifact": "alea_predictor_v2_4_1.py",
+  "expected_sha256": "4cfc61085ae742a550944a410ec81a1b21a47cc8ab7688bde0d879c7c24f022a",
+  "observed_source_sha256": "4cfc61085ae742a550944a410ec81a1b21a47cc8ab7688bde0d879c7c24f022a",
+  "ran_at_utc": "2026-11-24T13:52:47.756535+00:00",
+  "checks": {
+    "source_integrity": true,
+    "backup_created": true,
+    "corruption_detected": true,
+    "restore_rejects_bad": true,
+    "restore_ok": true,
+    "restored_integrity": true
+  },
+  "passed": true,
+  "scope": "drill on scratch copies; not a production store"
+}
