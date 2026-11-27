@@ -1,0 +1,674 @@
+{
+  "generated_at": "2026-11-27T15:55:50.678942+00:00",
+  "window_days": 60,
+  "source": {
+    "name": "OpenFootball football.json (CC0)",
+    "url": "https://raw.githubusercontent.com/openfootball/football.json/master/2026-27/en.1.json",
+    "sha256": "bb91f0ab3e8359df163bb9ec98549bfed85e200dd4c32f3bd606b5890d932dd2",
+    "retrieved_at": "2026-11-27T15:55:49.976410+00:00"
+  },
+  "licence": "CC0 1.0 (OpenFootball football.json)",
+  "note": "Listed kickoff times; broadcasters can move matches.",
+  "fixtures": [
+    {
+      "fixture_key": "2026-11-28|leeds united|coventry city",
+      "kickoff_utc": "2026-11-28T15:00:00+00:00",
+      "home": "leeds united",
+      "away": "coventry city"
+    },
+    {
+      "fixture_key": "2026-11-28|ipswich town|aston villa",
+      "kickoff_utc": "2026-11-28T15:00:00+00:00",
+      "home": "ipswich town",
+      "away": "aston villa"
+    },
+    {
+      "fixture_key": "2026-11-28|arsenal|manchester city",
+      "kickoff_utc": "2026-11-28T15:00:00+00:00",
+      "home": "arsenal",
+      "away": "manchester city"
+    },
+    {
+      "fixture_key": "2026-11-28|manchester united|brentford",
+      "kickoff_utc": "2026-11-28T15:00:00+00:00",
+      "home": "manchester united",
+      "away": "brentford"
+    },
+    {
+      "fixture_key": "2026-11-28|everton|liverpool",
+      "kickoff_utc": "2026-11-28T15:00:00+00:00",
+      "home": "everton",
+      "away": "liverpool"
+    },
+    {
+      "fixture_key": "2026-11-28|fulham|bournemouth",
+      "kickoff_utc": "2026-11-28T15:00:00+00:00",
+      "home": "fulham",
+      "away": "bournemouth"
+    },
+    {
+      "fixture_key": "2026-11-28|nottingham forest|chelsea",
+      "kickoff_utc": "2026-11-28T15:00:00+00:00",
+      "home": "nottingham forest",
+      "away": "chelsea"
+    },
+    {
+      "fixture_key": "2026-11-28|brighton and hove albion|newcastle united",
+      "kickoff_utc": "2026-11-28T15:00:00+00:00",
+      "home": "brighton and hove albion",
+      "away": "newcastle united"
+    },
+    {
+      "fixture_key": "2026-11-28|sunderland|tottenham",
+      "kickoff_utc": "2026-11-28T15:00:00+00:00",
+      "home": "sunderland",
+      "away": "tottenham"
+    },
+    {
+      "fixture_key": "2026-11-28|crystal palace|hull city",
+      "kickoff_utc": "2026-11-28T15:00:00+00:00",
+      "home": "crystal palace",
+      "away": "hull city"
+    },
+    {
+      "fixture_key": "2026-12-02|bournemouth|brighton and hove albion",
+      "kickoff_utc": "2026-12-02T20:00:00+00:00",
+      "home": "bournemouth",
+      "away": "brighton and hove albion"
+    },
+    {
+      "fixture_key": "2026-12-02|newcastle united|manchester united",
+      "kickoff_utc": "2026-12-02T20:00:00+00:00",
+      "home": "newcastle united",
+      "away": "manchester united"
+    },
+    {
+      "fixture_key": "2026-12-02|manchester city|leeds united",
+      "kickoff_utc": "2026-12-02T20:00:00+00:00",
+      "home": "manchester city",
+      "away": "leeds united"
+    },
+    {
+      "fixture_key": "2026-12-02|coventry city|ipswich town",
+      "kickoff_utc": "2026-12-02T20:00:00+00:00",
+      "home": "coventry city",
+      "away": "ipswich town"
+    },
+    {
+      "fixture_key": "2026-12-02|brentford|arsenal",
+      "kickoff_utc": "2026-12-02T20:00:00+00:00",
+      "home": "brentford",
+      "away": "arsenal"
+    },
+    {
+      "fixture_key": "2026-12-02|liverpool|sunderland",
+      "kickoff_utc": "2026-12-02T20:00:00+00:00",
+      "home": "liverpool",
+      "away": "sunderland"
+    },
+    {
+      "fixture_key": "2026-12-02|chelsea|crystal palace",
+      "kickoff_utc": "2026-12-02T20:00:00+00:00",
+      "home": "chelsea",
+      "away": "crystal palace"
+    },
+    {
+      "fixture_key": "2026-12-02|hull city|nottingham forest",
+      "kickoff_utc": "2026-12-02T20:00:00+00:00",
+      "home": "hull city",
+      "away": "nottingham forest"
+    },
+    {
+      "fixture_key": "2026-12-02|tottenham|fulham",
+      "kickoff_utc": "2026-12-02T20:00:00+00:00",
+      "home": "tottenham",
+      "away": "fulham"
+    },
+    {
+      "fixture_key": "2026-12-02|aston villa|everton",
+      "kickoff_utc": "2026-12-02T20:00:00+00:00",
+      "home": "aston villa",
+      "away": "everton"
+    },
+    {
+      "fixture_key": "2026-12-05|aston villa|crystal palace",
+      "kickoff_utc": "2026-12-05T15:00:00+00:00",
+      "home": "aston villa",
+      "away": "crystal palace"
+    },
+    {
+      "fixture_key": "2026-12-05|everton|fulham",
+      "kickoff_utc": "2026-12-05T15:00:00+00:00",
+      "home": "everton",
+      "away": "fulham"
+    },
+    {
+      "fixture_key": "2026-12-05|nottingham forest|brighton and hove albion",
+      "kickoff_utc": "2026-12-05T15:00:00+00:00",
+      "home": "nottingham forest",
+      "away": "brighton and hove albion"
+    },
+    {
+      "fixture_key": "2026-12-05|bournemouth|hull city",
+      "kickoff_utc": "2026-12-05T15:00:00+00:00",
+      "home": "bournemouth",
+      "away": "hull city"
+    },
+    {
+      "fixture_key": "2026-12-05|brentford|manchester city",
+      "kickoff_utc": "2026-12-05T15:00:00+00:00",
+      "home": "brentford",
+      "away": "manchester city"
+    },
+    {
+      "fixture_key": "2026-12-05|newcastle united|sunderland",
+      "kickoff_utc": "2026-12-05T15:00:00+00:00",
+      "home": "newcastle united",
+      "away": "sunderland"
+    },
+    {
+      "fixture_key": "2026-12-05|leeds united|ipswich town",
+      "kickoff_utc": "2026-12-05T15:00:00+00:00",
+      "home": "leeds united",
+      "away": "ipswich town"
+    },
+    {
+      "fixture_key": "2026-12-05|manchester united|coventry city",
+      "kickoff_utc": "2026-12-05T15:00:00+00:00",
+      "home": "manchester united",
+      "away": "coventry city"
+    },
+    {
+      "fixture_key": "2026-12-05|tottenham|arsenal",
+      "kickoff_utc": "2026-12-05T15:00:00+00:00",
+      "home": "tottenham",
+      "away": "arsenal"
+    },
+    {
+      "fixture_key": "2026-12-05|chelsea|liverpool",
+      "kickoff_utc": "2026-12-05T15:00:00+00:00",
+      "home": "chelsea",
+      "away": "liverpool"
+    },
+    {
+      "fixture_key": "2026-12-12|liverpool|leeds united",
+      "kickoff_utc": "2026-12-12T15:00:00+00:00",
+      "home": "liverpool",
+      "away": "leeds united"
+    },
+    {
+      "fixture_key": "2026-12-12|fulham|brentford",
+      "kickoff_utc": "2026-12-12T15:00:00+00:00",
+      "home": "fulham",
+      "away": "brentford"
+    },
+    {
+      "fixture_key": "2026-12-12|arsenal|bournemouth",
+      "kickoff_utc": "2026-12-12T15:00:00+00:00",
+      "home": "arsenal",
+      "away": "bournemouth"
+    },
+    {
+      "fixture_key": "2026-12-12|coventry city|aston villa",
+      "kickoff_utc": "2026-12-12T15:00:00+00:00",
+      "home": "coventry city",
+      "away": "aston villa"
+    },
+    {
+      "fixture_key": "2026-12-12|manchester city|chelsea",
+      "kickoff_utc": "2026-12-12T15:00:00+00:00",
+      "home": "manchester city",
+      "away": "chelsea"
+    },
+    {
+      "fixture_key": "2026-12-12|brighton and hove albion|everton",
+      "kickoff_utc": "2026-12-12T15:00:00+00:00",
+      "home": "brighton and hove albion",
+      "away": "everton"
+    },
+    {
+      "fixture_key": "2026-12-12|hull city|tottenham",
+      "kickoff_utc": "2026-12-12T15:00:00+00:00",
+      "home": "hull city",
+      "away": "tottenham"
+    },
+    {
+      "fixture_key": "2026-12-12|crystal palace|manchester united",
+      "kickoff_utc": "2026-12-12T15:00:00+00:00",
+      "home": "crystal palace",
+      "away": "manchester united"
+    },
+    {
+      "fixture_key": "2026-12-12|sunderland|nottingham forest",
+      "kickoff_utc": "2026-12-12T15:00:00+00:00",
+      "home": "sunderland",
+      "away": "nottingham forest"
+    },
+    {
+      "fixture_key": "2026-12-12|ipswich town|newcastle united",
+      "kickoff_utc": "2026-12-12T15:00:00+00:00",
+      "home": "ipswich town",
+      "away": "newcastle united"
+    },
+    {
+      "fixture_key": "2026-12-19|liverpool|tottenham",
+      "kickoff_utc": "2026-12-19T15:00:00+00:00",
+      "home": "liverpool",
+      "away": "tottenham"
+    },
+    {
+      "fixture_key": "2026-12-19|leeds united|fulham",
+      "kickoff_utc": "2026-12-19T15:00:00+00:00",
+      "home": "leeds united",
+      "away": "fulham"
+    },
+    {
+      "fixture_key": "2026-12-19|brighton and hove albion|ipswich town",
+      "kickoff_utc": "2026-12-19T15:00:00+00:00",
+      "home": "brighton and hove albion",
+      "away": "ipswich town"
+    },
+    {
+      "fixture_key": "2026-12-19|nottingham forest|everton",
+      "kickoff_utc": "2026-12-19T15:00:00+00:00",
+      "home": "nottingham forest",
+      "away": "everton"
+    },
+    {
+      "fixture_key": "2026-12-19|brentford|newcastle united",
+      "kickoff_utc": "2026-12-19T15:00:00+00:00",
+      "home": "brentford",
+      "away": "newcastle united"
+    },
+    {
+      "fixture_key": "2026-12-19|manchester city|hull city",
+      "kickoff_utc": "2026-12-19T15:00:00+00:00",
+      "home": "manchester city",
+      "away": "hull city"
+    },
+    {
+      "fixture_key": "2026-12-19|sunderland|crystal palace",
+      "kickoff_utc": "2026-12-19T15:00:00+00:00",
+      "home": "sunderland",
+      "away": "crystal palace"
+    },
+    {
+      "fixture_key": "2026-12-19|bournemouth|coventry city",
+      "kickoff_utc": "2026-12-19T15:00:00+00:00",
+      "home": "bournemouth",
+      "away": "coventry city"
+    },
+    {
+      "fixture_key": "2026-12-19|arsenal|manchester united",
+      "kickoff_utc": "2026-12-19T15:00:00+00:00",
+      "home": "arsenal",
+      "away": "manchester united"
+    },
+    {
+      "fixture_key": "2026-12-19|chelsea|aston villa",
+      "kickoff_utc": "2026-12-19T15:00:00+00:00",
+      "home": "chelsea",
+      "away": "aston villa"
+    },
+    {
+      "fixture_key": "2026-12-26|aston villa|leeds united",
+      "kickoff_utc": "2026-12-26T12:30:00+00:00",
+      "home": "aston villa",
+      "away": "leeds united"
+    },
+    {
+      "fixture_key": "2026-12-26|tottenham|bournemouth",
+      "kickoff_utc": "2026-12-26T15:00:00+00:00",
+      "home": "tottenham",
+      "away": "bournemouth"
+    },
+    {
+      "fixture_key": "2026-12-26|ipswich town|brentford",
+      "kickoff_utc": "2026-12-26T15:00:00+00:00",
+      "home": "ipswich town",
+      "away": "brentford"
+    },
+    {
+      "fixture_key": "2026-12-26|everton|sunderland",
+      "kickoff_utc": "2026-12-26T15:00:00+00:00",
+      "home": "everton",
+      "away": "sunderland"
+    },
+    {
+      "fixture_key": "2026-12-26|fulham|brighton and hove albion",
+      "kickoff_utc": "2026-12-26T15:00:00+00:00",
+      "home": "fulham",
+      "away": "brighton and hove albion"
+    },
+    {
+      "fixture_key": "2026-12-26|hull city|liverpool",
+      "kickoff_utc": "2026-12-26T17:30:00+00:00",
+      "home": "hull city",
+      "away": "liverpool"
+    },
+    {
+      "fixture_key": "2026-12-26|newcastle united|manchester city",
+      "kickoff_utc": "2026-12-26T20:00:00+00:00",
+      "home": "newcastle united",
+      "away": "manchester city"
+    },
+    {
+      "fixture_key": "2026-12-27|coventry city|chelsea",
+      "kickoff_utc": "2026-12-27T14:00:00+00:00",
+      "home": "coventry city",
+      "away": "chelsea"
+    },
+    {
+      "fixture_key": "2026-12-27|manchester united|nottingham forest",
+      "kickoff_utc": "2026-12-27T16:30:00+00:00",
+      "home": "manchester united",
+      "away": "nottingham forest"
+    },
+    {
+      "fixture_key": "2026-12-27|crystal palace|arsenal",
+      "kickoff_utc": "2026-12-27T19:00:00+00:00",
+      "home": "crystal palace",
+      "away": "arsenal"
+    },
+    {
+      "fixture_key": "2026-12-29|hull city|leeds united",
+      "kickoff_utc": "2026-12-29T19:30:00+00:00",
+      "home": "hull city",
+      "away": "leeds united"
+    },
+    {
+      "fixture_key": "2026-12-29|tottenham|brighton and hove albion",
+      "kickoff_utc": "2026-12-29T19:30:00+00:00",
+      "home": "tottenham",
+      "away": "brighton and hove albion"
+    },
+    {
+      "fixture_key": "2026-12-29|everton|manchester city",
+      "kickoff_utc": "2026-12-29T20:15:00+00:00",
+      "home": "everton",
+      "away": "manchester city"
+    },
+    {
+      "fixture_key": "2026-12-30|manchester united|sunderland",
+      "kickoff_utc": "2026-12-30T19:30:00+00:00",
+      "home": "manchester united",
+      "away": "sunderland"
+    },
+    {
+      "fixture_key": "2026-12-30|newcastle united|nottingham forest",
+      "kickoff_utc": "2026-12-30T19:30:00+00:00",
+      "home": "newcastle united",
+      "away": "nottingham forest"
+    },
+    {
+      "fixture_key": "2026-12-30|crystal palace|bournemouth",
+      "kickoff_utc": "2026-12-30T19:30:00+00:00",
+      "home": "crystal palace",
+      "away": "bournemouth"
+    },
+    {
+      "fixture_key": "2026-12-30|fulham|arsenal",
+      "kickoff_utc": "2026-12-30T19:30:00+00:00",
+      "home": "fulham",
+      "away": "arsenal"
+    },
+    {
+      "fixture_key": "2026-12-30|coventry city|brentford",
+      "kickoff_utc": "2026-12-30T19:30:00+00:00",
+      "home": "coventry city",
+      "away": "brentford"
+    },
+    {
+      "fixture_key": "2026-12-30|ipswich town|chelsea",
+      "kickoff_utc": "2026-12-30T20:15:00+00:00",
+      "home": "ipswich town",
+      "away": "chelsea"
+    },
+    {
+      "fixture_key": "2026-12-30|aston villa|liverpool",
+      "kickoff_utc": "2026-12-30T20:15:00+00:00",
+      "home": "aston villa",
+      "away": "liverpool"
+    },
+    {
+      "fixture_key": "2027-01-01|leeds united|everton",
+      "kickoff_utc": "2027-01-01T20:00:00+00:00",
+      "home": "leeds united",
+      "away": "everton"
+    },
+    {
+      "fixture_key": "2027-01-02|brighton and hove albion|manchester united",
+      "kickoff_utc": "2027-01-02T12:30:00+00:00",
+      "home": "brighton and hove albion",
+      "away": "manchester united"
+    },
+    {
+      "fixture_key": "2027-01-02|brentford|crystal palace",
+      "kickoff_utc": "2027-01-02T15:00:00+00:00",
+      "home": "brentford",
+      "away": "crystal palace"
+    },
+    {
+      "fixture_key": "2027-01-02|arsenal|ipswich town",
+      "kickoff_utc": "2027-01-02T15:00:00+00:00",
+      "home": "arsenal",
+      "away": "ipswich town"
+    },
+    {
+      "fixture_key": "2027-01-02|sunderland|hull city",
+      "kickoff_utc": "2027-01-02T15:00:00+00:00",
+      "home": "sunderland",
+      "away": "hull city"
+    },
+    {
+      "fixture_key": "2027-01-02|liverpool|coventry city",
+      "kickoff_utc": "2027-01-02T15:00:00+00:00",
+      "home": "liverpool",
+      "away": "coventry city"
+    },
+    {
+      "fixture_key": "2027-01-02|nottingham forest|fulham",
+      "kickoff_utc": "2027-01-02T15:00:00+00:00",
+      "home": "nottingham forest",
+      "away": "fulham"
+    },
+    {
+      "fixture_key": "2027-01-02|bournemouth|aston villa",
+      "kickoff_utc": "2027-01-02T17:30:00+00:00",
+      "home": "bournemouth",
+      "away": "aston villa"
+    },
+    {
+      "fixture_key": "2027-01-03|chelsea|newcastle united",
+      "kickoff_utc": "2027-01-03T14:00:00+00:00",
+      "home": "chelsea",
+      "away": "newcastle united"
+    },
+    {
+      "fixture_key": "2027-01-03|manchester city|tottenham",
+      "kickoff_utc": "2027-01-03T16:30:00+00:00",
+      "home": "manchester city",
+      "away": "tottenham"
+    },
+    {
+      "fixture_key": "2027-01-05|nottingham forest|hull city",
+      "kickoff_utc": "2027-01-05T19:30:00+00:00",
+      "home": "nottingham forest",
+      "away": "hull city"
+    },
+    {
+      "fixture_key": "2027-01-05|everton|aston villa",
+      "kickoff_utc": "2027-01-05T19:30:00+00:00",
+      "home": "everton",
+      "away": "aston villa"
+    },
+    {
+      "fixture_key": "2027-01-05|brighton and hove albion|bournemouth",
+      "kickoff_utc": "2027-01-05T19:30:00+00:00",
+      "home": "brighton and hove albion",
+      "away": "bournemouth"
+    },
+    {
+      "fixture_key": "2027-01-05|arsenal|brentford",
+      "kickoff_utc": "2027-01-05T19:30:00+00:00",
+      "home": "arsenal",
+      "away": "brentford"
+    },
+    {
+      "fixture_key": "2027-01-05|sunderland|liverpool",
+      "kickoff_utc": "2027-01-05T20:15:00+00:00",
+      "home": "sunderland",
+      "away": "liverpool"
+    },
+    {
+      "fixture_key": "2027-01-06|fulham|tottenham",
+      "kickoff_utc": "2027-01-06T19:30:00+00:00",
+      "home": "fulham",
+      "away": "tottenham"
+    },
+    {
+      "fixture_key": "2027-01-06|crystal palace|chelsea",
+      "kickoff_utc": "2027-01-06T19:30:00+00:00",
+      "home": "crystal palace",
+      "away": "chelsea"
+    },
+    {
+      "fixture_key": "2027-01-06|ipswich town|coventry city",
+      "kickoff_utc": "2027-01-06T19:30:00+00:00",
+      "home": "ipswich town",
+      "away": "coventry city"
+    },
+    {
+      "fixture_key": "2027-01-06|leeds united|manchester city",
+      "kickoff_utc": "2027-01-06T20:15:00+00:00",
+      "home": "leeds united",
+      "away": "manchester city"
+    },
+    {
+      "fixture_key": "2027-01-07|manchester united|newcastle united",
+      "kickoff_utc": "2027-01-07T20:00:00+00:00",
+      "home": "manchester united",
+      "away": "newcastle united"
+    },
+    {
+      "fixture_key": "2027-01-16|coventry city|everton",
+      "kickoff_utc": "2027-01-16T15:00:00+00:00",
+      "home": "coventry city",
+      "away": "everton"
+    },
+    {
+      "fixture_key": "2027-01-16|newcastle united|fulham",
+      "kickoff_utc": "2027-01-16T15:00:00+00:00",
+      "home": "newcastle united",
+      "away": "fulham"
+    },
+    {
+      "fixture_key": "2027-01-16|hull city|arsenal",
+      "kickoff_utc": "2027-01-16T15:00:00+00:00",
+      "home": "hull city",
+      "away": "arsenal"
+    },
+    {
+      "fixture_key": "2027-01-16|liverpool|crystal palace",
+      "kickoff_utc": "2027-01-16T15:00:00+00:00",
+      "home": "liverpool",
+      "away": "crystal palace"
+    },
+    {
+      "fixture_key": "2027-01-16|tottenham|leeds united",
+      "kickoff_utc": "2027-01-16T15:00:00+00:00",
+      "home": "tottenham",
+      "away": "leeds united"
+    },
+    {
+      "fixture_key": "2027-01-16|brentford|brighton and hove albion",
+      "kickoff_utc": "2027-01-16T15:00:00+00:00",
+      "home": "brentford",
+      "away": "brighton and hove albion"
+    },
+    {
+      "fixture_key": "2027-01-16|chelsea|sunderland",
+      "kickoff_utc": "2027-01-16T15:00:00+00:00",
+      "home": "chelsea",
+      "away": "sunderland"
+    },
+    {
+      "fixture_key": "2027-01-16|manchester city|nottingham forest",
+      "kickoff_utc": "2027-01-16T15:00:00+00:00",
+      "home": "manchester city",
+      "away": "nottingham forest"
+    },
+    {
+      "fixture_key": "2027-01-16|bournemouth|ipswich town",
+      "kickoff_utc": "2027-01-16T15:00:00+00:00",
+      "home": "bournemouth",
+      "away": "ipswich town"
+    },
+    {
+      "fixture_key": "2027-01-16|aston villa|manchester united",
+      "kickoff_utc": "2027-01-16T15:00:00+00:00",
+      "home": "aston villa",
+      "away": "manchester united"
+    },
+    {
+      "fixture_key": "2027-01-23|leeds united|chelsea",
+      "kickoff_utc": "2027-01-23T15:00:00+00:00",
+      "home": "leeds united",
+      "away": "chelsea"
+    },
+    {
+      "fixture_key": "2027-01-23|manchester united|liverpool",
+      "kickoff_utc": "2027-01-23T15:00:00+00:00",
+      "home": "manchester united",
+      "away": "liverpool"
+    },
+    {
+      "fixture_key": "2027-01-23|fulham|aston villa",
+      "kickoff_utc": "2027-01-23T15:00:00+00:00",
+      "home": "fulham",
+      "away": "aston villa"
+    },
+    {
+      "fixture_key": "2027-01-23|arsenal|newcastle united",
+      "kickoff_utc": "2027-01-23T15:00:00+00:00",
+      "home": "arsenal",
+      "away": "newcastle united"
+    },
+    {
+      "fixture_key": "2027-01-23|brighton and hove albion|manchester city",
+      "kickoff_utc": "2027-01-23T15:00:00+00:00",
+      "home": "brighton and hove albion",
+      "away": "manchester city"
+    },
+    {
+      "fixture_key": "2027-01-23|sunderland|coventry city",
+      "kickoff_utc": "2027-01-23T15:00:00+00:00",
+      "home": "sunderland",
+      "away": "coventry city"
+    },
+    {
+      "fixture_key": "2027-01-23|everton|brentford",
+      "kickoff_utc": "2027-01-23T15:00:00+00:00",
+      "home": "everton",
+      "away": "brentford"
+    },
+    {
+      "fixture_key": "2027-01-23|ipswich town|hull city",
+      "kickoff_utc": "2027-01-23T15:00:00+00:00",
+      "home": "ipswich town",
+      "away": "hull city"
+    },
+    {
+      "fixture_key": "2027-01-23|nottingham forest|bournemouth",
+      "kickoff_utc": "2027-01-23T15:00:00+00:00",
+      "home": "nottingham forest",
+      "away": "bournemouth"
+    },
+    {
+      "fixture_key": "2027-01-23|crystal palace|tottenham",
+      "kickoff_utc": "2027-01-23T15:00:00+00:00",
+      "home": "crystal palace",
+      "away": "tottenham"
+    }
+  ]
+}

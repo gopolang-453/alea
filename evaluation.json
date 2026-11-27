@@ -2,15 +2,17 @@
   "challengers": {
     "dc_elo_equal_average": {
       "decision": "insufficient data (0 of 300 paired settled fixtures)",
-      "forecasts_recorded": 10,
+      "forecasts_recorded": 20,
       "model_version": "stage9-dc-elo-equal-average-v1",
-      "n_paired": 0
+      "n_paired": 0,
+      "settled_but_not_paired": {}
     },
     "elo_ordered_logit": {
       "decision": "insufficient data (0 of 300 paired settled fixtures)",
-      "forecasts_recorded": 10,
+      "forecasts_recorded": 20,
       "model_version": "stage9-elo-ordered-logit-v1",
-      "n_paired": 0
+      "n_paired": 0,
+      "settled_but_not_paired": {}
     }
   },
   "champion": {
@@ -20,17 +22,17 @@
   "champion_model_version": "alea-dc-v2.4.1",
   "counts": {
     "by_status": {
-      "pending": 10
+      "pending": 20
     },
-    "challenger_forecasts": 20,
-    "champion_forecasts": 10,
+    "challenger_forecasts": 40,
+    "champion_forecasts": 20,
     "scored": 0
   },
   "data_quality_issues": [],
   "events": [],
   "foreign_model_versions_in_champion_table": [],
-  "generated_at_utc": "2026-11-24T16:07:40.567533+00:00",
-  "ledger_fingerprint": "cf486e7d30701173e9f7eea3d7f74fdbbb19ca13b43470e489f74ad2c58381b8",
+  "generated_at_utc": "2026-11-27T15:55:50.678942+00:00",
+  "ledger_fingerprint": "8faad40a20bf0ffc8f5d0392555d99e1e4f5f24818fe51ff7321dea71c52a401",
   "outstanding": [
     {
       "away": "manchester city",
@@ -179,6 +181,156 @@
       "p_draw": 0.2954229952001156,
       "p_home": 0.3542664784325243,
       "predicted_at": "2026-11-24T14:36:11.901854+00:00",
+      "reason": "",
+      "status": "pending"
+    },
+    {
+      "away": "everton",
+      "data_snapshot_hash": "d5463a371bd94ef5c4c6325f49dc5f9c56bb383becc6ffef40b1e26e4cfd0986",
+      "date": "2026-12-02",
+      "fixture_key": "2026-12-02|aston villa|everton",
+      "home": "aston villa",
+      "kickoff_at": "2026-12-02T20:00:00+00:00",
+      "model_version": "alea-dc-v2.4.1",
+      "p_away": 0.24342235845152643,
+      "p_draw": 0.2729834551293145,
+      "p_home": 0.48359418641915913,
+      "predicted_at": "2026-11-27T15:55:50.678942+00:00",
+      "reason": "",
+      "status": "pending"
+    },
+    {
+      "away": "brighton and hove albion",
+      "data_snapshot_hash": "d5463a371bd94ef5c4c6325f49dc5f9c56bb383becc6ffef40b1e26e4cfd0986",
+      "date": "2026-12-02",
+      "fixture_key": "2026-12-02|bournemouth|brighton and hove albion",
+      "home": "bournemouth",
+      "kickoff_at": "2026-12-02T20:00:00+00:00",
+      "model_version": "alea-dc-v2.4.1",
+      "p_away": 0.3655225321737537,
+      "p_draw": 0.2619419258433823,
+      "p_home": 0.3725355419828641,
+      "predicted_at": "2026-11-27T15:55:50.678942+00:00",
+      "reason": "",
+      "status": "pending"
+    },
+    {
+      "away": "arsenal",
+      "data_snapshot_hash": "d5463a371bd94ef5c4c6325f49dc5f9c56bb383becc6ffef40b1e26e4cfd0986",
+      "date": "2026-12-02",
+      "fixture_key": "2026-12-02|brentford|arsenal",
+      "home": "brentford",
+      "kickoff_at": "2026-12-02T20:00:00+00:00",
+      "model_version": "alea-dc-v2.4.1",
+      "p_away": 0.499072280154121,
+      "p_draw": 0.2671752079523349,
+      "p_home": 0.23375251189354418,
+      "predicted_at": "2026-11-27T15:55:50.678942+00:00",
+      "reason": "",
+      "status": "pending"
+    },
+    {
+      "away": "crystal palace",
+      "data_snapshot_hash": "d5463a371bd94ef5c4c6325f49dc5f9c56bb383becc6ffef40b1e26e4cfd0986",
+      "date": "2026-12-02",
+      "fixture_key": "2026-12-02|chelsea|crystal palace",
+      "home": "chelsea",
+      "kickoff_at": "2026-12-02T20:00:00+00:00",
+      "model_version": "alea-dc-v2.4.1",
+      "p_away": 0.2021010938872819,
+      "p_draw": 0.2279460219411153,
+      "p_home": 0.5699528841716028,
+      "predicted_at": "2026-11-27T15:55:50.678942+00:00",
+      "reason": "",
+      "status": "pending"
+    },
+    {
+      "away": "ipswich town",
+      "data_snapshot_hash": "d5463a371bd94ef5c4c6325f49dc5f9c56bb383becc6ffef40b1e26e4cfd0986",
+      "date": "2026-12-02",
+      "fixture_key": "2026-12-02|coventry city|ipswich town",
+      "home": "coventry city",
+      "kickoff_at": "2026-12-02T20:00:00+00:00",
+      "model_version": "alea-dc-v2.4.1",
+      "p_away": 0.2515355556587042,
+      "p_draw": 0.22051072697558324,
+      "p_home": 0.5279537173657125,
+      "predicted_at": "2026-11-27T15:55:50.678942+00:00",
+      "reason": "",
+      "status": "pending"
+    },
+    {
+      "away": "nottingham forest",
+      "data_snapshot_hash": "d5463a371bd94ef5c4c6325f49dc5f9c56bb383becc6ffef40b1e26e4cfd0986",
+      "date": "2026-12-02",
+      "fixture_key": "2026-12-02|hull city|nottingham forest",
+      "home": "hull city",
+      "kickoff_at": "2026-12-02T20:00:00+00:00",
+      "model_version": "alea-dc-v2.4.1",
+      "p_away": 0.2440077814584729,
+      "p_draw": 0.31032153022340603,
+      "p_home": 0.4456706883181211,
+      "predicted_at": "2026-11-27T15:55:50.678942+00:00",
+      "reason": "",
+      "status": "pending"
+    },
+    {
+      "away": "sunderland",
+      "data_snapshot_hash": "d5463a371bd94ef5c4c6325f49dc5f9c56bb383becc6ffef40b1e26e4cfd0986",
+      "date": "2026-12-02",
+      "fixture_key": "2026-12-02|liverpool|sunderland",
+      "home": "liverpool",
+      "kickoff_at": "2026-12-02T20:00:00+00:00",
+      "model_version": "alea-dc-v2.4.1",
+      "p_away": 0.1409548131762819,
+      "p_draw": 0.2256924710804193,
+      "p_home": 0.6333527157432988,
+      "predicted_at": "2026-11-27T15:55:50.678942+00:00",
+      "reason": "",
+      "status": "pending"
+    },
+    {
+      "away": "leeds united",
+      "data_snapshot_hash": "d5463a371bd94ef5c4c6325f49dc5f9c56bb383becc6ffef40b1e26e4cfd0986",
+      "date": "2026-12-02",
+      "fixture_key": "2026-12-02|manchester city|leeds united",
+      "home": "manchester city",
+      "kickoff_at": "2026-12-02T20:00:00+00:00",
+      "model_version": "alea-dc-v2.4.1",
+      "p_away": 0.1426602933424114,
+      "p_draw": 0.21099630726175048,
+      "p_home": 0.6463433993958381,
+      "predicted_at": "2026-11-27T15:55:50.678942+00:00",
+      "reason": "",
+      "status": "pending"
+    },
+    {
+      "away": "manchester united",
+      "data_snapshot_hash": "d5463a371bd94ef5c4c6325f49dc5f9c56bb383becc6ffef40b1e26e4cfd0986",
+      "date": "2026-12-02",
+      "fixture_key": "2026-12-02|newcastle united|manchester united",
+      "home": "newcastle united",
+      "kickoff_at": "2026-12-02T20:00:00+00:00",
+      "model_version": "alea-dc-v2.4.1",
+      "p_away": 0.2966793995146511,
+      "p_draw": 0.24065471657666926,
+      "p_home": 0.4626658839086797,
+      "predicted_at": "2026-11-27T15:55:50.678942+00:00",
+      "reason": "",
+      "status": "pending"
+    },
+    {
+      "away": "fulham",
+      "data_snapshot_hash": "d5463a371bd94ef5c4c6325f49dc5f9c56bb383becc6ffef40b1e26e4cfd0986",
+      "date": "2026-12-02",
+      "fixture_key": "2026-12-02|tottenham|fulham",
+      "home": "tottenham",
+      "kickoff_at": "2026-12-02T20:00:00+00:00",
+      "model_version": "alea-dc-v2.4.1",
+      "p_away": 0.3004707694825877,
+      "p_draw": 0.2761091477361482,
+      "p_home": 0.42342008278126414,
+      "predicted_at": "2026-11-27T15:55:50.678942+00:00",
       "reason": "",
       "status": "pending"
     }

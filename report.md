@@ -1,39 +1,39 @@
 # ALEA prospective forecast report
 
-Generated: 2026-11-24T16:07:40.567533+00:00  
+Generated: 2026-11-27T15:55:50.678942+00:00  
 Champion: `alea-dc-v2.4.1`  
-Ledger fingerprint (champion forecasts): `cf486e7d30701173e9f7eea3d7f74fdbbb19ca13b43470e489f74ad2c58381b8`
+Ledger fingerprint (champion forecasts): `8faad40a20bf0ffc8f5d0392555d99e1e4f5f24818fe51ff7321dea71c52a401`
 
 ## This run
 
-- Run id: `20261124T160740Z`
+- Run id: `20261127T155550Z`
 - Status: **ok**
-- forecasts recorded: 0
-- forecasts already in ledger: 10
-- challenger forecasts recorded: 0
+- forecasts recorded: 10
+- forecasts already in ledger: 0
+- challenger forecasts recorded: 20
 - outcomes settled: 0
-- too close to kickoff: 0
-- Results from Wikipedia, '2026–27 Premier League' (revision 1387424026), CC BY-SA 4.0, https://en.wikipedia.org/w/index.php?oldid=1387424026
+- too close to kickoff: 10
+- Results from Wikipedia, '2026–27 Premier League' (revision 1387838419), CC BY-SA 4.0, https://en.wikipedia.org/w/index.php?oldid=1387838419
 
 ### Forecasts in this window
 
 | Kickoff (listed, UTC) | Home | Away | H | D | A | Status |
 |---|---|---|---|---|---|---|
-| 2026-11-28T15:00 | leeds united | coventry city | 0.554 | 0.233 | 0.212 | already_in_ledger |
-| 2026-11-28T15:00 | ipswich town | aston villa | 0.233 | 0.228 | 0.539 | already_in_ledger |
-| 2026-11-28T15:00 | arsenal | manchester city | 0.460 | 0.277 | 0.263 | already_in_ledger |
-| 2026-11-28T15:00 | manchester united | brentford | 0.399 | 0.251 | 0.350 | already_in_ledger |
-| 2026-11-28T15:00 | everton | liverpool | 0.253 | 0.270 | 0.477 | already_in_ledger |
-| 2026-11-28T15:00 | fulham | bournemouth | 0.374 | 0.280 | 0.346 | already_in_ledger |
-| 2026-11-28T15:00 | nottingham forest | chelsea | 0.362 | 0.267 | 0.370 | already_in_ledger |
-| 2026-11-28T15:00 | brighton and hove albion | newcastle united | 0.503 | 0.240 | 0.257 | already_in_ledger |
-| 2026-11-28T15:00 | sunderland | tottenham | 0.354 | 0.295 | 0.350 | already_in_ledger |
-| 2026-11-28T15:00 | crystal palace | hull city | 0.297 | 0.309 | 0.394 | already_in_ledger |
+| 2026-12-02T20:00 | tottenham | fulham | 0.423 | 0.276 | 0.300 | recorded |
+| 2026-12-02T20:00 | liverpool | sunderland | 0.633 | 0.226 | 0.141 | recorded |
+| 2026-12-02T20:00 | hull city | nottingham forest | 0.446 | 0.310 | 0.244 | recorded |
+| 2026-12-02T20:00 | chelsea | crystal palace | 0.570 | 0.228 | 0.202 | recorded |
+| 2026-12-02T20:00 | aston villa | everton | 0.484 | 0.273 | 0.243 | recorded |
+| 2026-12-02T20:00 | brentford | arsenal | 0.234 | 0.267 | 0.499 | recorded |
+| 2026-12-02T20:00 | coventry city | ipswich town | 0.528 | 0.221 | 0.252 | recorded |
+| 2026-12-02T20:00 | manchester city | leeds united | 0.646 | 0.211 | 0.143 | recorded |
+| 2026-12-02T20:00 | newcastle united | manchester united | 0.463 | 0.241 | 0.297 | recorded |
+| 2026-12-02T20:00 | bournemouth | brighton and hove albion | 0.372 | 0.262 | 0.365 | recorded |
 
 ## Ledger summary
 
-- Champion forecasts: 10 (challenger rows: 20)
-- By status: pending 10
+- Champion forecasts: 20 (challenger rows: 40)
+- By status: pending 20
 - Scored (settled, champion version): 0
 
 ## Champion performance (settled forecasts only)
@@ -63,6 +63,16 @@ Differences are challenger minus champion; negative favours the challenger.
 | 2026-11-28 manchester united v brentford | 2026-11-28T15:00 | pending |  |
 | 2026-11-28 nottingham forest v chelsea | 2026-11-28T15:00 | pending |  |
 | 2026-11-28 sunderland v tottenham | 2026-11-28T15:00 | pending |  |
+| 2026-12-02 aston villa v everton | 2026-12-02T20:00 | pending |  |
+| 2026-12-02 bournemouth v brighton and hove albion | 2026-12-02T20:00 | pending |  |
+| 2026-12-02 brentford v arsenal | 2026-12-02T20:00 | pending |  |
+| 2026-12-02 chelsea v crystal palace | 2026-12-02T20:00 | pending |  |
+| 2026-12-02 coventry city v ipswich town | 2026-12-02T20:00 | pending |  |
+| 2026-12-02 hull city v nottingham forest | 2026-12-02T20:00 | pending |  |
+| 2026-12-02 liverpool v sunderland | 2026-12-02T20:00 | pending |  |
+| 2026-12-02 manchester city v leeds united | 2026-12-02T20:00 | pending |  |
+| 2026-12-02 newcastle united v manchester united | 2026-12-02T20:00 | pending |  |
+| 2026-12-02 tottenham v fulham | 2026-12-02T20:00 | pending |  |
 
 ## Settled forecasts
 
@@ -71,3 +81,10 @@ None yet.
 ## Data-quality issues
 
 None recorded.
+
+## Data sources and licences
+
+- Forecast probabilities: ALEA model output.
+- Match results: Wikipedia contributors, "2026–27 Premier League" (the revision used by each run is recorded in `runs/` and in the ledger), licensed under [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). Result observations redistributed in this ledger remain under CC BY-SA 4.0.
+- Fixtures and historical results: [OpenFootball football.json](https://github.com/openfootball/football.json), CC0 1.0.
+- Licensing assessment: `docs/DATA_SOURCES_AND_LICENSING.md` (not legal advice).

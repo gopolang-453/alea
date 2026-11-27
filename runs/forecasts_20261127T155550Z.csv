@@ -1,0 +1,11 @@
+fixture_key,kickoff_utc,home,away,p_home,p_draw,p_away,prior_only,status
+2026-12-02|tottenham|fulham,2026-12-02T20:00:00+00:00,tottenham,fulham,0.4234,0.2761,0.3005,False,recorded
+2026-12-02|liverpool|sunderland,2026-12-02T20:00:00+00:00,liverpool,sunderland,0.6334,0.2257,0.141,False,recorded
+2026-12-02|hull city|nottingham forest,2026-12-02T20:00:00+00:00,hull city,nottingham forest,0.4457,0.3103,0.244,False,recorded
+2026-12-02|chelsea|crystal palace,2026-12-02T20:00:00+00:00,chelsea,crystal palace,0.57,0.2279,0.2021,False,recorded
+2026-12-02|aston villa|everton,2026-12-02T20:00:00+00:00,aston villa,everton,0.4836,0.273,0.2434,False,recorded
+2026-12-02|brentford|arsenal,2026-12-02T20:00:00+00:00,brentford,arsenal,0.2338,0.2672,0.4991,False,recorded
+2026-12-02|coventry city|ipswich town,2026-12-02T20:00:00+00:00,coventry city,ipswich town,0.528,0.2205,0.2515,False,recorded
+2026-12-02|manchester city|leeds united,2026-12-02T20:00:00+00:00,manchester city,leeds united,0.6463,0.211,0.1427,False,recorded
+2026-12-02|newcastle united|manchester united,2026-12-02T20:00:00+00:00,newcastle united,manchester united,0.4627,0.2407,0.2967,False,recorded
+2026-12-02|bournemouth|brighton and hove albion,2026-12-02T20:00:00+00:00,bournemouth,brighton and hove albion,0.3725,0.2619,0.3655,False,recorded

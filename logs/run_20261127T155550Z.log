@@ -1,0 +1,13 @@
+2026-11-27 15:55:50,831 INFO fetched Wikipedia revision 1387838419 (2026-11-25T18:11:34Z)
+2026-11-27 15:55:51,815 INFO champion fitted on 2770 matches (sha256 d5463a371bd9)
+2026-11-27 15:55:52,816 INFO 2026-12-02T20:00 tottenham v fulham H 0.423 D 0.276 A 0.300 [recorded]
+2026-11-27 15:55:52,816 INFO 2026-12-02T20:00 liverpool v sunderland H 0.633 D 0.226 A 0.141 [recorded]
+2026-11-27 15:55:52,816 INFO 2026-12-02T20:00 hull city v nottingham forest H 0.446 D 0.310 A 0.244 [recorded]
+2026-11-27 15:55:52,816 INFO 2026-12-02T20:00 chelsea v crystal palace H 0.570 D 0.228 A 0.202 [recorded]
+2026-11-27 15:55:52,816 INFO 2026-12-02T20:00 aston villa v everton H 0.484 D 0.273 A 0.243 [recorded]
+2026-11-27 15:55:52,816 INFO 2026-12-02T20:00 brentford v arsenal H 0.234 D 0.267 A 0.499 [recorded]
+2026-11-27 15:55:52,816 INFO 2026-12-02T20:00 coventry city v ipswich town H 0.528 D 0.221 A 0.252 [recorded]
+2026-11-27 15:55:52,817 INFO 2026-12-02T20:00 manchester city v leeds united H 0.646 D 0.211 A 0.143 [recorded]
+2026-11-27 15:55:52,817 INFO 2026-12-02T20:00 newcastle united v manchester united H 0.463 D 0.241 A 0.297 [recorded]
+2026-11-27 15:55:52,817 INFO 2026-12-02T20:00 bournemouth v brighton and hove albion H 0.372 D 0.262 A 0.365 [recorded]
+2026-11-27 15:55:52,832 INFO status=ok recorded=10 settled=[]

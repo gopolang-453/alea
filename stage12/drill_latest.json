@@ -1,6 +1,6 @@
 {
   "store": "ledger-data/ledger.sqlite",
-  "ran_at_utc": "2026-11-24T16:07:47.293206+00:00",
+  "ran_at_utc": "2026-11-27T15:55:55.335310+00:00",
   "checks": {
     "source_integrity": true,
     "backup_created_and_verified": true,
@@ -22,17 +22,17 @@
   },
   "details": {
     "source": {
-      "fingerprint": "cf486e7d30701173e9f7eea3d7f74fdbbb19ca13b43470e489f74ad2c58381b8",
-      "champion_forecasts": 10,
-      "challenger_forecasts": 20,
+      "fingerprint": "8faad40a20bf0ffc8f5d0392555d99e1e4f5f24818fe51ff7321dea71c52a401",
+      "champion_forecasts": 20,
+      "challenger_forecasts": 40,
       "outcomes": 0,
       "sqlite_integrity_check": "ok"
     },
     "backup_manifest": {
-      "backup": "ledger_20261124T160744860493Z_5936bfd716f0d130.sqlite",
-      "sha256": "5936bfd716f0d130e8c49a0544f96eb182ab4de5ea50b9132542def02b7c9b6a",
-      "fingerprint": "cf486e7d30701173e9f7eea3d7f74fdbbb19ca13b43470e489f74ad2c58381b8",
-      "champion_forecasts": 10
+      "backup": "ledger_20261127T155553371275Z_1f8516cfea47da97.sqlite",
+      "sha256": "1f8516cfea47da978f8d4f6111216e6eac3fba538f0e0803fa83e22812d65a9e",
+      "fingerprint": "8faad40a20bf0ffc8f5d0392555d99e1e4f5f24818fe51ff7321dea71c52a401",
+      "champion_forecasts": 20
     },
     "interrupted_write_exit_code": 9,
     "service_on_restored": {
